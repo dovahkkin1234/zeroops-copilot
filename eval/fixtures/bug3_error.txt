@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "app.py", line 6, in get_events_on
+    year, month, day = parts
+TypeError: cannot unpack non-iterable NoneType object

@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "handlers.py", line 12, in check_session
+    if not validate_token(session_token):
+AttributeError: module 'auth' has no attribute 'validate_token'

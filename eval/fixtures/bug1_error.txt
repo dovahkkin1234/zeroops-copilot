@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "middleware.py", line 6, in require_auth
+    if not validate_token(token):
+AttributeError: module 'auth' has no attribute 'validate_token'

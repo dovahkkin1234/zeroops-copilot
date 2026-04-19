@@ -1,0 +1,4 @@
+ERROR: collecting tests/test_auth.py
+ImportError while importing test module 'tests/test_auth.py'.
+    from auth import validate_token
+ImportError: cannot import name 'validate_token' from 'auth'
