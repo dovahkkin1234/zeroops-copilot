@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Multi-agent ZeroOps prototype — triage, investigate, and prevent incident recurrence"
 requires-python = ">=3.11"
 dependencies = [
-    "anthropic>=0.40.0",
+    "openai>=1.0",
     "langgraph>=0.4.0,<2.0",
     "pydantic-ai>=1.0.0",
     "pydantic>=2.0",

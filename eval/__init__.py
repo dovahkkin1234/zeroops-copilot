@@ -1,5 +1,5 @@
-"""Allow running benchmark as: python -m eval.benchmark"""
-from eval.benchmark import run_benchmark
-import asyncio
+"""Eval package — benchmark harness for ZeroOps Copilot.
 
-asyncio.run(run_benchmark())
+Run with:
+    uv run python eval/benchmark.py
+"""
