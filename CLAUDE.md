@@ -1,16 +1,18 @@
 # ZeroOps Copilot — Claude Code Instruction Manual
 
+> **CURRENT MISSION OVERRIDES THE BUILD PHASES BELOW.** The project is already built; the task now is evidence-based polish. Follow the handoff file first; where it conflicts with anything below, it wins.
+
+@docs/HANDOFF.md
+
 > This file is persistent context for Claude Code. Read it fully before any task. When executing phases, re-read the section for that phase. When debugging, re-read the relevant prompt and schema sections.
 
 ---
 
 ## 0. Who you are and what you're building
 
-You are Claude Code, operating inside the Antigravity IDE. Your user is an intern applicant to **Lumiq.ai** building a 3-day submission for their AI Engineering Internship assignment. The submission is due **9:00 AM IST, April 21, 2026**.
+You are Claude Code, operating inside the Antigravity IDE. Your user is building a self-directed, timeboxed (3-day) prototype to demonstrate agentic-systems engineering ability — originally scoped as an open-ended "your own idea — any multi-step autonomous workflow solving a real ops problem" brief.
 
 The project is **ZeroOps Copilot** — a multi-agent prototype that demonstrates the industry's shift from reactive incident management to proactive ticket prevention, aligned with the ZeroOps direction that enterprise AMS providers (Cognizant, Infosys, LTIMindtree) are pursuing.
-
-This submission is **Option C** of the Lumiq assignment ("your own idea — any multi-step autonomous workflow solving a real ops problem").
 
 ---
 
@@ -32,7 +34,7 @@ These are non-negotiable. They come from the user's "context engineer, not promp
 
 7. **Fail gracefully in scope.** If you run behind schedule, drop features in this order: (a) Next.js frontend → CLI only, (b) Docker sandbox for repro → show the script without running it, (c) Problem Manager → submit with Triage + Investigator only. Do not drop the Evaluator loop, the Triage, or the memory store under any circumstance.
 
-8. **Use Claude models exclusively.** `claude-opus-4-7` for all agent reasoning nodes. Never fall back to other providers. The Lumiq JD is Claude-heavy and using other models undermines the submission.
+8. **Use Claude models exclusively.** `claude-opus-4-7` for all agent reasoning nodes. Never fall back to other providers.
 
 ---
 
@@ -40,7 +42,7 @@ These are non-negotiable. They come from the user's "context engineer, not promp
 
 | Topic | Decision | Rationale |
 |---|---|---|
-| LLM provider | Anthropic, `claude-opus-4-7` | Lumiq is Claude-heavy. Opus 4.7 is current flagship. |
+| LLM provider | Anthropic, `claude-opus-4-7` | Opus 4.7 was the current flagship at build time; strong structured-output + agentic reasoning fit. |
 | Cheaper utility calls | `claude-haiku-4-5-20251001` if needed | Reserve for non-reasoning formatting tasks only. |
 | Package manager | `uv` | Modern, fast, signals current practice. |
 | Embeddings | `sentence-transformers` `all-MiniLM-L6-v2`, local | Free, deterministic, no API dependency, demo-reliable. |
@@ -1115,8 +1117,7 @@ A multi-agent prototype that shifts incident tickets leftward — from L3
 investigation to L0 auto-resolution to prevented — aligned with the
 industry's ZeroOps direction.
 
-**Submission:** Lumiq AI Engineering Intern Assignment, Option C
-**Built by:** [Your Name] · [GitHub] · IIITDM · April 2026
+**Built by:** Shirish Giroti · [GitHub](https://github.com/dovahkkin1234) · IIITDM Kancheepuram · April 2026
 
 ## 30-second pitch
 
@@ -1176,7 +1177,7 @@ theories.
 
 - **Claude Opus 4.7** as the reasoning model for all agent nodes
 - **Claude Code** as the primary development agent, inside the
-  **Antigravity** IDE — hitting both of Lumiq's named agentic tools
+  **Antigravity** IDE
 - **LangGraph** for the state-machine orchestration
 - **PydanticAI** for strict structured outputs on every node
 - **sentence-transformers** (`all-MiniLM-L6-v2`) for local incident
@@ -1252,7 +1253,9 @@ integration logic were human-driven. Notable Claude Code usage:
 - Repro execution is sandboxed via subprocess only; a proper Docker
   sandbox is a next step
 - Incident memory is local SQLite; a real deployment would need a
-  shared vector DB (Pinecone/Qdrant are in Lumiq's named stack)
+  shared vector DB (e.g. Pinecone/Qdrant) or a proper graph store for
+  cross-incident relationships — this prototype deliberately scoped
+  that out to keep the agentic core demonstrable in days, not weeks
 
 ## What this unlocks next
 
@@ -1267,7 +1270,7 @@ providers are building for production in 2026.
 
 ## 16. Video script (target 3:00–3:30)
 
-The user will record this after the build. Keep this script intact — it is optimized for Lumiq's panel.
+The user will record this after the build. Keep this script intact — it is optimized for a technical reviewing panel.
 
 **[0:00–0:20] Hook**
 > "A senior engineering manager at Cognizant told me tickets are the biggest operational cost in enterprise IT, and the industry is shifting to ZeroOps — the target state of zero operational tickets. I built a working prototype of that architecture."
@@ -1298,7 +1301,7 @@ The user will record this after the build. Keep this script intact — it is opt
 
 ## 17. Hour-by-hour execution timeline
 
-Assume "start now" is Saturday evening April 19. Submission deadline 9 AM April 21.
+Assume "start now" is Saturday evening April 19, 2026, against a self-imposed 36-hour build budget.
 
 **Saturday evening (4 hours):**
 - Hr 1: Phase 1 — bootstrap `pyproject.toml`, `.env`, structure, empty stubs
@@ -1411,4 +1414,4 @@ When something breaks:
 
 Ask them directly. Do not guess. The user has thought carefully about this project and has a specific vision. When in doubt, quote the relevant CLAUDE.md section and ask for their decision.
 
-Good luck. Build well. Ship before 9 AM April 21.
+Good luck. Build well.
