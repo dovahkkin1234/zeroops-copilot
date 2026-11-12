@@ -16,7 +16,6 @@ Results are written to eval/results/<UTC-timestamp>/ as results.json + results.m
 import argparse
 import asyncio
 import json
-import sqlite3
 import subprocess
 import sys
 import time
@@ -30,9 +29,34 @@ from rich import box
 # Add src to path so eval/ imports from src/zeroops
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
+from pydantic_ai.exceptions import ModelHTTPError
+
 from zeroops.graph import build_graph
 from zeroops.config import settings
 from zeroops.memory.store import init_db, reset_db
+
+
+# ── 429 / rate-limit retry ────────────────────────────────────────────────────
+
+def _is_rate_limit(exc: BaseException) -> bool:
+    if isinstance(exc, ModelHTTPError) and exc.status_code == 429:
+        return True
+    msg = str(exc).lower()
+    return any(k in msg for k in ("429", "rate limit", "resource exhausted", "quota"))
+
+
+async def _invoke_with_retry(graph, state: dict, max_retries: int = 5) -> dict:
+    """Invoke the graph, retrying on 429 with exponential backoff (2s, 4s, 8s…)."""
+    for attempt in range(max_retries + 1):
+        try:
+            return await graph.ainvoke(state)
+        except Exception as exc:
+            if attempt < max_retries and _is_rate_limit(exc):
+                delay = 2.0 * (2 ** attempt)
+                console.print(f"  [yellow]Rate limit (attempt {attempt+1}), retrying in {delay:.0f}s…[/]")
+                await asyncio.sleep(delay)
+            else:
+                raise
 
 console = Console()
 
@@ -157,8 +181,13 @@ def _build_initial_state() -> dict:
     }
 
 
-async def _run_bug(graph, bug_id: str, bug_def: dict, fixtures_dir: Path) -> dict:
-    """Run a single bug through the agent graph. Returns scores dict."""
+async def _run_bug(graph, bug_id: str, bug_def: dict, fixtures_dir: Path,
+                   checkpoint_path: Path | None = None) -> dict:
+    """Run a single bug through the agent graph. Returns scores dict.
+
+    If checkpoint_path is given, appends this bug's result to the checkpoint
+    file immediately after completion so a mid-run crash loses no work.
+    """
     error_file = fixtures_dir / bug_def["file"]
     error_text = error_file.read_text(encoding="utf-8").strip()
 
@@ -169,7 +198,7 @@ async def _run_bug(graph, bug_id: str, bug_def: dict, fixtures_dir: Path) -> dic
         initial_state = _build_initial_state()
         initial_state["error_text"] = error_text
 
-        final_state = await graph.ainvoke(initial_state)
+        final_state = await _invoke_with_retry(graph, initial_state)
         final_state["duration_seconds"] = time.time() - start
         scores = _score_result(bug_def, final_state)
 
@@ -179,18 +208,35 @@ async def _run_bug(graph, bug_id: str, bug_def: dict, fixtures_dir: Path) -> dic
             f"file={'✓' if scores['file_found'] else '✗'} "
             f"confidence={scores['confidence']:.0%}"
         )
-        return scores
 
     except Exception as e:
         duration = time.time() - start
         console.print(f"  [red]❌ Failed: {e}[/]")
-        return {
+        scores = {
             "triage_correct": False, "pattern_correct": False,
             "file_found": False, "confidence": 0.0,
             "resolution_status": "error", "tools_called": 0,
             "duration_seconds": duration, "prevention_tickets": 0,
             "error": str(e),
         }
+
+    # Checkpoint: persist this bug's result immediately
+    if checkpoint_path is not None:
+        _write_checkpoint(checkpoint_path, bug_id, scores)
+
+    return scores
+
+
+def _write_checkpoint(path: Path, bug_id: str, scores: dict) -> None:
+    """Append one bug result to the checkpoint file (creates or updates)."""
+    existing: dict = {}
+    if path.exists():
+        try:
+            existing = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            existing = {}
+    existing[bug_id] = scores
+    path.write_text(json.dumps(existing, indent=2), encoding="utf-8")
 
 
 def _print_results_table(results: dict):
@@ -245,10 +291,12 @@ def _print_results_table(results: dict):
     console.print()
 
 
-def _persist_results(results: dict, condition: str, timestamp: str):
+def _persist_results(results: dict, condition: str, timestamp: str,
+                     out_dir: Path | None = None):
     """Write results.json and results.md to eval/results/<timestamp>/."""
-    out_dir = RESULTS_DIR / timestamp
-    out_dir.mkdir(parents=True, exist_ok=True)
+    if out_dir is None:
+        out_dir = RESULTS_DIR / timestamp
+        out_dir.mkdir(parents=True, exist_ok=True)
 
     total = len(results)
     patterns_correct = sum(1 for r in results.values() if r.get("pattern_correct"))
@@ -346,8 +394,14 @@ async def run_benchmark(no_memory: bool = False):
     condition = "no_memory" if no_memory else "with_memory"
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
+    # Create the output dir early so checkpoints land there from the first bug
+    out_dir = RESULTS_DIR / timestamp
+    out_dir.mkdir(parents=True, exist_ok=True)
+    checkpoint_path = out_dir / "checkpoint.json"
+
     console.print()
     console.print(f"[bold cyan]═══ ZeroOps Copilot Benchmark ═══[/] condition=[yellow]{condition}[/]")
+    console.print(f"[dim]Results → {out_dir}[/]")
     console.print()
 
     # Reset memory for clean slate
@@ -363,7 +417,9 @@ async def run_benchmark(no_memory: bool = False):
 
     phase_a_bugs = {k: v for k, v in BUGS.items() if v["phase"] == "A"}
     for bug_id, bug_def in phase_a_bugs.items():
-        results[bug_id] = await _run_bug(graph, bug_id, bug_def, fixtures_dir)
+        results[bug_id] = await _run_bug(
+            graph, bug_id, bug_def, fixtures_dir, checkpoint_path
+        )
 
     # ── Phase B: warm (or cleared) memory — bug4 ─────────────────────────────
     label = "Cleared Memory (ablation)" if no_memory else "Warm Memory"
@@ -372,15 +428,15 @@ async def run_benchmark(no_memory: bool = False):
     console.print("─" * 50)
 
     if no_memory:
-        # Ablation: clear the memory that Phase A just populated so bug4
-        # cannot use the L0 fast-path.
         reset_db()
         console.print("[dim]  Memory cleared for ablation run.[/]")
 
     for bug_id, bug_def in BUGS.items():
         if bug_def["phase"] != "B":
             continue
-        scores = await _run_bug(graph, bug_id, bug_def, fixtures_dir)
+        scores = await _run_bug(
+            graph, bug_id, bug_def, fixtures_dir, checkpoint_path
+        )
         results[bug_id] = scores
 
         if not no_memory:
@@ -389,7 +445,7 @@ async def run_benchmark(no_memory: bool = False):
 
     # ── Print and persist ─────────────────────────────────────────────────────
     _print_results_table(results)
-    out_dir = _persist_results(results, condition, timestamp)
+    _persist_results(results, condition, timestamp, out_dir)
     console.print(f"[bold green]Done.[/] Results saved to {out_dir}")
 
     return results

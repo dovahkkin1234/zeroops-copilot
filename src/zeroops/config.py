@@ -3,14 +3,15 @@
 import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-_VALID_PROVIDERS = {"anthropic", "ollama"}
+_VALID_PROVIDERS = {"anthropic", "ollama", "google-gla"}
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     anthropic_api_key: str = ""
-    llm_provider: str = "anthropic"           # "anthropic" | "ollama"
+    google_api_key: str = ""
+    llm_provider: str = "anthropic"           # "anthropic" | "ollama" | "google-gla"
     llm_model: str = "claude-opus-4-7"
     utility_model: str = "claude-haiku-4-5-20251001"
     ollama_base_url: str = "http://localhost:11434/v1"
@@ -44,3 +45,6 @@ if settings.anthropic_api_key and not os.environ.get("ANTHROPIC_API_KEY"):
 if settings.llm_provider == "ollama" and settings.ollama_base_url:
     if not os.environ.get("OLLAMA_BASE_URL"):
         os.environ["OLLAMA_BASE_URL"] = settings.ollama_base_url
+
+if settings.google_api_key and not os.environ.get("GOOGLE_API_KEY"):
+    os.environ["GOOGLE_API_KEY"] = settings.google_api_key

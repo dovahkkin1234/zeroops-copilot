@@ -91,3 +91,46 @@ def test_ollama_base_url_configurable(monkeypatch):
     from zeroops.config import Settings
     s = Settings()
     assert s.ollama_base_url == "http://my-gpu-box:11434/v1"
+
+
+# ── google-gla provider (T4b extension) ───────────────────────────────────────
+
+def test_google_gla_provider_model_string(monkeypatch):
+    """LLM_PROVIDER=google-gla must produce 'google-gla:' prefix."""
+    monkeypatch.setenv("LLM_PROVIDER", "google-gla")
+    monkeypatch.setenv("LLM_MODEL", "gemini-4-hydrogen")
+    monkeypatch.setenv("UTILITY_MODEL", "gemini-4-hydrogen")
+    from zeroops.config import Settings
+    s = Settings()
+    assert s.pydantic_ai_model == "google-gla:gemini-4-hydrogen"
+    assert s.pydantic_ai_utility_model == "google-gla:gemini-4-hydrogen"
+    assert not s.pydantic_ai_model.startswith("anthropic:")
+    assert not s.pydantic_ai_model.startswith("ollama:")
+
+
+def test_google_gla_different_model(monkeypatch):
+    """Model name propagates correctly for google-gla."""
+    monkeypatch.setenv("LLM_PROVIDER", "google-gla")
+    monkeypatch.setenv("LLM_MODEL", "gemini-2.5-flash")
+    from zeroops.config import Settings
+    s = Settings()
+    assert s.pydantic_ai_model == "google-gla:gemini-2.5-flash"
+
+
+def test_google_api_key_field_reads_from_env(monkeypatch):
+    """GOOGLE_API_KEY env var maps to settings.google_api_key (never reads .env)."""
+    monkeypatch.setenv("GOOGLE_API_KEY", "test-key-xyz-offline")
+    from zeroops.config import Settings
+    s = Settings()
+    assert s.google_api_key == "test-key-xyz-offline"
+
+
+def test_google_api_key_default_is_empty():
+    """google_api_key defaults to empty string when env var is absent."""
+    from zeroops.config import Settings
+    import os
+    # Only safe if GOOGLE_API_KEY is not already set in this process
+    if os.environ.get("GOOGLE_API_KEY"):
+        return  # skip if the real key is present in env
+    s = Settings()
+    assert s.google_api_key == ""
