@@ -19,7 +19,7 @@ from .agents.reporter import reporter_node
 
 def route_from_triage(state: AgentState) -> str:
     """Route based on triage classification."""
-    triage = state.get("triage", {})
+    triage = state.get("triage") or {}
     if triage.get("classification") == "known_pattern":
         return "reporter"        # L0 fast path
     return "planner"
