@@ -3,13 +3,17 @@
 import os
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_VALID_PROVIDERS = {"anthropic", "ollama"}
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     anthropic_api_key: str = ""
+    llm_provider: str = "anthropic"           # "anthropic" | "ollama"
     llm_model: str = "claude-opus-4-7"
     utility_model: str = "claude-haiku-4-5-20251001"
+    ollama_base_url: str = "http://localhost:11434/v1"
     embed_model: str = "all-MiniLM-L6-v2"
     db_path: str = "./incidents.db"
     repo_path: str = "./demo_repo"
@@ -18,18 +22,25 @@ class Settings(BaseSettings):
 
     @property
     def pydantic_ai_model(self) -> str:
-        """PydanticAI needs 'anthropic:model-id' format."""
-        return f"anthropic:{self.llm_model}"
+        """Return PydanticAI model string with provider prefix.
+
+        Supports 'anthropic:model-id' and 'ollama:model-id'.
+        """
+        return f"{self.llm_provider}:{self.llm_model}"
 
     @property
     def pydantic_ai_utility_model(self) -> str:
-        """Utility model for non-reasoning formatting tasks."""
-        return f"anthropic:{self.utility_model}"
+        """Utility model (cheaper, non-reasoning tasks)."""
+        return f"{self.llm_provider}:{self.utility_model}"
 
 
 settings = Settings()
 
 # pydantic-settings reads .env into the model but does NOT write to os.environ.
-# PydanticAI's Anthropic client resolves the key from os.environ, so we sync it here.
+# Sync keys that provider clients resolve from os.environ.
 if settings.anthropic_api_key and not os.environ.get("ANTHROPIC_API_KEY"):
     os.environ["ANTHROPIC_API_KEY"] = settings.anthropic_api_key
+
+if settings.llm_provider == "ollama" and settings.ollama_base_url:
+    if not os.environ.get("OLLAMA_BASE_URL"):
+        os.environ["OLLAMA_BASE_URL"] = settings.ollama_base_url
