@@ -1,23 +1,33 @@
 """Benchmark harness — runs agent on 5 seeded bugs and reports metrics.
 
-Must run with: uv run python -m eval.benchmark
+Usage:
+    uv run python -m eval.benchmark                # default (with memory)
+    uv run python -m eval.benchmark --no-memory    # ablation: memory disabled for bug4
 
 Benchmark execution order (stateful — critical):
 Phase A (cold start): Run bugs 1, 2, 3, 5 against empty memory.
 Phase B (warm memory): Run bug 4 against populated memory (should hit L0 path).
+
+With --no-memory the DB is temporarily cleared before bug4 so the agent
+must re-investigate the same error without the memory shortcut.
+Results are written to eval/results/<UTC-timestamp>/ as results.json + results.md.
 """
 
+import argparse
 import asyncio
 import json
+import sqlite3
+import subprocess
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 from rich.console import Console
 from rich.table import Table
 from rich import box
 
-# Add src to path since we're running from eval/
+# Add src to path so eval/ imports from src/zeroops
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from zeroops.graph import build_graph
@@ -25,6 +35,8 @@ from zeroops.config import settings
 from zeroops.memory.store import init_db, reset_db
 
 console = Console()
+
+RESULTS_DIR = Path(__file__).parent / "results"
 
 # Bug definitions with expected outcomes
 BUGS = {
@@ -67,6 +79,19 @@ BUGS = {
 }
 
 
+def _get_git_hash() -> str:
+    """Return the current HEAD commit hash (short form), or 'unknown'."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, check=True,
+            cwd=Path(__file__).parent.parent,
+        )
+        return result.stdout.strip()
+    except Exception:
+        return "unknown"
+
+
 def _score_result(bug_def: dict, state: dict) -> dict:
     """Score an individual benchmark result."""
     postmortem = state.get("postmortem", {})
@@ -87,16 +112,14 @@ def _score_result(bug_def: dict, state: dict) -> dict:
     actual_pattern = hypothesis.get("pattern", "") if hypothesis else ""
     scores["pattern_correct"] = actual_pattern == bug_def["expected_pattern"]
 
-    # 3. File identification — did we find the right file?
+    # 3. File identification — did we find the right file in evidence?
     evidence = state.get("evidence", [])
     found_files = set()
     for ev in evidence:
         ref = ev.get("reference", "")
         if ref:
             found_files.add(ref.replace("\\", "/"))
-    scores["file_found"] = any(
-        bug_def["expected_file"] in f for f in found_files
-    )
+    scores["file_found"] = any(bug_def["expected_file"] in f for f in found_files)
 
     # 4. Confidence
     scores["confidence"] = postmortem.get("confidence", 0.0) if postmortem else 0.0
@@ -108,7 +131,7 @@ def _score_result(bug_def: dict, state: dict) -> dict:
     scores["tools_called"] = len(state.get("tool_history", []))
 
     # 7. Duration
-    scores["duration"] = state.get("duration_seconds", 0.0)
+    scores["duration_seconds"] = state.get("duration_seconds", 0.0)
 
     # 8. Prevention tickets generated
     scores["prevention_tickets"] = len(state.get("prevention_tickets", []))
@@ -116,122 +139,58 @@ def _score_result(bug_def: dict, state: dict) -> dict:
     return scores
 
 
-async def run_benchmark():
-    """Run the full benchmark suite."""
-    fixtures_dir = Path(__file__).parent / "fixtures"
+def _build_initial_state() -> dict:
+    return {
+        "error_text": "",
+        "triage": None,
+        "current_plan": None,
+        "evidence": [],
+        "tool_history": [],
+        "iteration": 0,
+        "max_iterations": settings.max_investigation_loops,
+        "evaluator_decision": None,
+        "hypothesis": None,
+        "repro": None,
+        "prevention_tickets": [],
+        "postmortem": None,
+        "duration_seconds": 0.0,
+    }
 
-    console.print()
-    console.print("[bold cyan]═══ ZeroOps Copilot Benchmark ═══[/]")
-    console.print()
 
-    # Reset memory for clean slate
-    init_db()
-    reset_db()
+async def _run_bug(graph, bug_id: str, bug_def: dict, fixtures_dir: Path) -> dict:
+    """Run a single bug through the agent graph. Returns scores dict."""
+    error_file = fixtures_dir / bug_def["file"]
+    error_text = error_file.read_text(encoding="utf-8").strip()
 
-    graph = build_graph()
-    results = {}
+    console.print(f"\n[cyan]Running {bug_id}:[/] {bug_def['name']}")
+    start = time.time()
 
-    # Phase A: cold start (bugs 1, 2, 3, 5)
-    console.print("[bold yellow]Phase A: Cold Start[/] (empty memory)")
-    console.print("─" * 50)
+    try:
+        initial_state = _build_initial_state()
+        initial_state["error_text"] = error_text
 
-    phase_a_bugs = {k: v for k, v in BUGS.items() if v["phase"] == "A"}
-    for bug_id, bug_def in phase_a_bugs.items():
-        error_file = fixtures_dir / bug_def["file"]
-        error_text = error_file.read_text(encoding="utf-8").strip()
+        final_state = await graph.ainvoke(initial_state)
+        final_state["duration_seconds"] = time.time() - start
+        scores = _score_result(bug_def, final_state)
 
-        console.print(f"\n[cyan]Running {bug_id}:[/] {bug_def['name']}")
-        start = time.time()
+        console.print(
+            f"  ✅ Completed in {scores['duration_seconds']:.1f}s — "
+            f"pattern={'✓' if scores['pattern_correct'] else '✗'} "
+            f"file={'✓' if scores['file_found'] else '✗'} "
+            f"confidence={scores['confidence']:.0%}"
+        )
+        return scores
 
-        try:
-            initial_state = {
-                "error_text": error_text,
-                "triage": None,
-                "current_plan": None,
-                "evidence": [],
-                "tool_history": [],
-                "iteration": 0,
-                "max_iterations": settings.max_investigation_loops,
-                "evaluator_decision": None,
-                "hypothesis": None,
-                "repro": None,
-                "prevention_tickets": [],
-                "postmortem": None,
-                "duration_seconds": 0.0,
-            }
-
-            final_state = await graph.ainvoke(initial_state)
-            final_state["duration_seconds"] = time.time() - start
-            scores = _score_result(bug_def, final_state)
-            results[bug_id] = scores
-            console.print(f"  ✅ Completed in {scores['duration']:.1f}s — "
-                         f"pattern={'✓' if scores['pattern_correct'] else '✗'} "
-                         f"file={'✓' if scores['file_found'] else '✗'} "
-                         f"confidence={scores['confidence']:.0%}")
-
-        except Exception as e:
-            console.print(f"  [red]❌ Failed: {e}[/]")
-            results[bug_id] = {
-                "triage_correct": False, "pattern_correct": False,
-                "file_found": False, "confidence": 0.0,
-                "resolution_status": "error", "tools_called": 0,
-                "duration": time.time() - start, "prevention_tickets": 0,
-                "error": str(e),
-            }
-
-    # Phase B: warm memory (bug 4 — L0 test)
-    console.print(f"\n[bold yellow]Phase B: Warm Memory[/] (bug4 should hit L0)")
-    console.print("─" * 50)
-
-    for bug_id, bug_def in BUGS.items():
-        if bug_def["phase"] != "B":
-            continue
-
-        error_file = fixtures_dir / bug_def["file"]
-        error_text = error_file.read_text(encoding="utf-8").strip()
-
-        console.print(f"\n[cyan]Running {bug_id}:[/] {bug_def['name']}")
-        start = time.time()
-
-        try:
-            initial_state = {
-                "error_text": error_text,
-                "triage": None,
-                "current_plan": None,
-                "evidence": [],
-                "tool_history": [],
-                "iteration": 0,
-                "max_iterations": settings.max_investigation_loops,
-                "evaluator_decision": None,
-                "hypothesis": None,
-                "repro": None,
-                "prevention_tickets": [],
-                "postmortem": None,
-                "duration_seconds": 0.0,
-            }
-
-            final_state = await graph.ainvoke(initial_state)
-            final_state["duration_seconds"] = time.time() - start
-            scores = _score_result(bug_def, final_state)
-            results[bug_id] = scores
-
-            l0_hit = "✓ L0!" if scores.get("triage_correct") else "✗ missed L0"
-            console.print(f"  ✅ Completed in {scores['duration']:.1f}s — {l0_hit}")
-
-        except Exception as e:
-            console.print(f"  [red]❌ Failed: {e}[/]")
-            results[bug_id] = {
-                "triage_correct": False, "pattern_correct": False,
-                "file_found": False, "confidence": 0.0,
-                "resolution_status": "error", "tools_called": 0,
-                "duration": time.time() - start, "prevention_tickets": 0,
-                "error": str(e),
-            }
-
-    # Print results table
-    _print_results_table(results)
-
-    return results
+    except Exception as e:
+        duration = time.time() - start
+        console.print(f"  [red]❌ Failed: {e}[/]")
+        return {
+            "triage_correct": False, "pattern_correct": False,
+            "file_found": False, "confidence": 0.0,
+            "resolution_status": "error", "tools_called": 0,
+            "duration_seconds": duration, "prevention_tickets": 0,
+            "error": str(e),
+        }
 
 
 def _print_results_table(results: dict):
@@ -264,19 +223,18 @@ def _print_results_table(results: dict):
             "✅" if r.get("file_found") else "❌",
             f"{r.get('confidence', 0):.0%}",
             str(r.get("tools_called", 0)),
-            f"{r.get('duration', 0):.1f}s",
+            f"{r.get('duration_seconds', 0):.1f}s",
             str(r.get("prevention_tickets", 0)),
         )
 
     console.print(table)
 
-    # Aggregate scores
     total = len(results)
     patterns_correct = sum(1 for r in results.values() if r.get("pattern_correct"))
     files_found = sum(1 for r in results.values() if r.get("file_found"))
     avg_confidence = sum(r.get("confidence", 0) for r in results.values()) / max(total, 1)
     total_tickets = sum(r.get("prevention_tickets", 0) for r in results.values())
-    total_duration = sum(r.get("duration", 0) for r in results.values())
+    total_duration = sum(r.get("duration_seconds", 0) for r in results.values())
 
     console.print()
     console.print(f"[bold]Pattern accuracy:[/] {patterns_correct}/{total}")
@@ -287,5 +245,171 @@ def _print_results_table(results: dict):
     console.print()
 
 
+def _persist_results(results: dict, condition: str, timestamp: str):
+    """Write results.json and results.md to eval/results/<timestamp>/."""
+    out_dir = RESULTS_DIR / timestamp
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    total = len(results)
+    patterns_correct = sum(1 for r in results.values() if r.get("pattern_correct"))
+    files_found = sum(1 for r in results.values() if r.get("file_found"))
+    avg_confidence = sum(r.get("confidence", 0) for r in results.values()) / max(total, 1)
+    total_tickets = sum(r.get("prevention_tickets", 0) for r in results.values())
+    total_duration = sum(r.get("duration_seconds", 0) for r in results.values())
+
+    payload = {
+        "metadata": {
+            "timestamp": timestamp,
+            "git_commit": _get_git_hash(),
+            "llm_provider": settings.llm_provider,
+            "llm_model": settings.llm_model,
+            "utility_model": settings.utility_model,
+            "embed_model": settings.embed_model,
+            "max_investigation_loops": settings.max_investigation_loops,
+            "condition": condition,
+            # Token tracking: PydanticAI per-node usage is not propagated through
+            # LangGraph state in this version. Field left null; wire in if needed.
+            "token_tracking": None,
+        },
+        "per_bug_prices_usd_per_1k_tokens": None,  # populate when tracking is wired
+        "results": results,
+        "aggregate": {
+            "pattern_accuracy_fraction": f"{patterns_correct}/{total}",
+            "file_identification_fraction": f"{files_found}/{total}",
+            "avg_confidence": round(avg_confidence, 4),
+            "total_prevention_tickets": total_tickets,
+            "total_duration_seconds": round(total_duration, 2),
+        },
+    }
+
+    # Write JSON
+    (out_dir / "results.json").write_text(
+        json.dumps(payload, indent=2), encoding="utf-8"
+    )
+
+    # Write Markdown table
+    md_lines = [
+        f"# ZeroOps Benchmark Results",
+        f"",
+        f"**Run:** {timestamp}  ",
+        f"**Commit:** {payload['metadata']['git_commit']}  ",
+        f"**Provider:** {settings.llm_provider}  ",
+        f"**Model:** {settings.llm_model}  ",
+        f"**Condition:** {condition}  ",
+        f"",
+        f"| Bug | Name | Triage | Pattern | File | Confidence | Tools | Duration | Tickets |",
+        f"|-----|------|:------:|:-------:|:----:|-----------:|------:|---------:|--------:|",
+    ]
+
+    for bug_id in ["bug1", "bug2", "bug3", "bug4", "bug5"]:
+        if bug_id not in results:
+            continue
+        r = results[bug_id]
+        b = BUGS[bug_id]
+        md_lines.append(
+            f"| {bug_id} | {b['name'][:38]} "
+            f"| {'✅' if r.get('triage_correct') else '❌'} "
+            f"| {'✅' if r.get('pattern_correct') else '❌'} "
+            f"| {'✅' if r.get('file_found') else '❌'} "
+            f"| {r.get('confidence', 0):.0%} "
+            f"| {r.get('tools_called', 0)} "
+            f"| {r.get('duration_seconds', 0):.1f}s "
+            f"| {r.get('prevention_tickets', 0)} |"
+        )
+
+    md_lines += [
+        f"",
+        f"**Pattern accuracy:** {patterns_correct}/{total}  ",
+        f"**File identification:** {files_found}/{total}  ",
+        f"**Average confidence:** {avg_confidence:.0%}  ",
+        f"**Prevention tickets:** {total_tickets}  ",
+        f"**Total duration:** {total_duration:.1f}s  ",
+        f"",
+        f"> Sample size: n={total} seeded bugs, synthetic, authored by the builder.",
+        f"> Confidence values are model self-reported, not externally calibrated.",
+    ]
+
+    (out_dir / "results.md").write_text("\n".join(md_lines), encoding="utf-8")
+
+    console.print(f"[dim]Results written to eval/results/{timestamp}/[/]")
+    return out_dir
+
+
+async def run_benchmark(no_memory: bool = False):
+    """Run the full benchmark suite.
+
+    Args:
+        no_memory: If True, temporarily clear memory before Phase B so bug4
+                   must be investigated from scratch (ablation condition).
+    """
+    fixtures_dir = Path(__file__).parent / "fixtures"
+    condition = "no_memory" if no_memory else "with_memory"
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+    console.print()
+    console.print(f"[bold cyan]═══ ZeroOps Copilot Benchmark ═══[/] condition=[yellow]{condition}[/]")
+    console.print()
+
+    # Reset memory for clean slate
+    init_db()
+    reset_db()
+
+    graph = build_graph()
+    results = {}
+
+    # ── Phase A: cold start (bugs 1, 2, 3, 5) ────────────────────────────────
+    console.print("[bold yellow]Phase A: Cold Start[/] (empty memory)")
+    console.print("─" * 50)
+
+    phase_a_bugs = {k: v for k, v in BUGS.items() if v["phase"] == "A"}
+    for bug_id, bug_def in phase_a_bugs.items():
+        results[bug_id] = await _run_bug(graph, bug_id, bug_def, fixtures_dir)
+
+    # ── Phase B: warm (or cleared) memory — bug4 ─────────────────────────────
+    label = "Cleared Memory (ablation)" if no_memory else "Warm Memory"
+    expected = "→ full investigation" if no_memory else "→ bug4 should hit L0"
+    console.print(f"\n[bold yellow]Phase B: {label}[/] ({expected})")
+    console.print("─" * 50)
+
+    if no_memory:
+        # Ablation: clear the memory that Phase A just populated so bug4
+        # cannot use the L0 fast-path.
+        reset_db()
+        console.print("[dim]  Memory cleared for ablation run.[/]")
+
+    for bug_id, bug_def in BUGS.items():
+        if bug_def["phase"] != "B":
+            continue
+        scores = await _run_bug(graph, bug_id, bug_def, fixtures_dir)
+        results[bug_id] = scores
+
+        if not no_memory:
+            l0_hit = "✓ L0!" if scores.get("triage_correct") else "✗ missed L0"
+            console.print(f"  → Triage: {l0_hit}")
+
+    # ── Print and persist ─────────────────────────────────────────────────────
+    _print_results_table(results)
+    out_dir = _persist_results(results, condition, timestamp)
+    console.print(f"[bold green]Done.[/] Results saved to {out_dir}")
+
+    return results
+
+
+def main():
+    parser = argparse.ArgumentParser(
+        description="ZeroOps Copilot benchmark harness"
+    )
+    parser.add_argument(
+        "--no-memory",
+        action="store_true",
+        help=(
+            "Ablation: clear memory before Phase B so bug4 must be investigated "
+            "from scratch instead of hitting the L0 fast-path. Condition label: no_memory."
+        ),
+    )
+    args = parser.parse_args()
+    asyncio.run(run_benchmark(no_memory=args.no_memory))
+
+
 if __name__ == "__main__":
-    asyncio.run(run_benchmark())
+    main()
