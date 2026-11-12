@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZeroOps Copilot</title>
+<style>
+:root {
+  --bg: #f8fafc;
+  --bg2: #f1f5f9;
+  --surface: #ffffff;
+  --surface2: #f8fafc;
+  --border: #e2e8f0;
+  --text: #0f172a;
+  --text2: #475569;
+  --text3: #94a3b8;
+  --primary: #6366f1;
+  --primary-dim: #818cf8;
+  --primary-bg: #eef2ff;
+  --warning-bg: #fef3c7;
+  --warning-border: #f59e0b;
+  --warning-text: #78350f;
+  --success: #059669;
+  --success-bg: #d1fae5;
+  --error: #dc2626;
+  --error-bg: #fee2e2;
+  --info: #0284c7;
+  --info-bg: #e0f2fe;
+  --radius: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'SF Mono', 'Consolas', 'Liberation Mono', monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1117;
+    --bg2: #161b22;
+    --surface: #1e2130;
+    --surface2: #252d3d;
+    --border: #2d3748;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #4a5568;
+    --primary: #818cf8;
+    --primary-dim: #6366f1;
+    --primary-bg: #1e1b4b;
+    --warning-bg: #2d1f00;
+    --warning-border: #d97706;
+    --warning-text: #fcd34d;
+    --success: #34d399;
+    --success-bg: #064e3b;
+    --error: #f87171;
+    --error-bg: #450a0a;
+    --info: #38bdf8;
+    --info-bg: #082f49;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1117;
+  --bg2: #161b22;
+  --surface: #1e2130;
+  --surface2: #252d3d;
+  --border: #2d3748;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --text3: #4a5568;
+  --primary: #818cf8;
+  --primary-dim: #6366f1;
+  --primary-bg: #1e1b4b;
+  --warning-bg: #2d1f00;
+  --warning-border: #d97706;
+  --warning-text: #fcd34d;
+  --success: #34d399;
+  --success-bg: #064e3b;
+  --error: #f87171;
+  --error-bg: #450a0a;
+  --info: #38bdf8;
+  --info-bg: #082f49;
+  color-scheme: dark;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;font-size:16px}
+a{color:var(--primary);text-decoration:none}
+a:hover{text-decoration:underline}
+code,pre{font-family:var(--mono);font-size:.875em}
+pre{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+.container{max-width:860px;margin:0 auto;padding:0 16px}
+/* Banner */
+.banner{background:var(--warning-bg);border-bottom:2px solid var(--warning-border);padding:.75rem 16px;color:var(--warning-text);font-size:.9rem;text-align:center}
+.banner strong{font-weight:700}
+/* Nav / Header */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:1.25rem 16px}
+.header-inner{max-width:860px;margin:0 auto;display:flex;align-items:baseline;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.site-title{font-size:1.4rem;font-weight:800;color:var(--text);letter-spacing:-.02em}
+.site-title span{color:var(--primary)}
+.site-desc{color:var(--text2);font-size:.9rem}
+/* Sections */
+section{padding:2rem 0;border-bottom:1px solid var(--border)}
+section:last-of-type{border-bottom:none}
+h2{font-size:1.2rem;font-weight:700;margin-bottom:.5rem;color:var(--text)}
+h3{font-size:1rem;font-weight:600;margin-bottom:.5rem;color:var(--text)}
+.section-intro{color:var(--text2);font-size:.9rem;margin-bottom:1.25rem;max-width:620px}
+/* Card */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem;box-shadow:var(--shadow)}
+/* Fixtures */
+.fixture-row{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:.75rem}
+.fixture-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:.35rem .75rem;font-size:.8rem;cursor:pointer;color:var(--text2);font-family:var(--mono);transition:all .15s}
+.fixture-btn:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-bg)}
+/* Textarea */
+textarea{width:100%;min-height:120px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:.75rem;color:var(--text);font-family:var(--mono);font-size:.8rem;resize:vertical;outline:none;transition:border .15s}
+textarea:focus{border-color:var(--primary)}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:.4rem;padding:.5rem 1.1rem;border-radius:var(--radius);font-size:.9rem;font-weight:600;cursor:pointer;border:none;transition:all .15s}
+.btn-primary{background:var(--primary);color:#fff}
+.btn-primary:hover{opacity:.88}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed}
+.btn-sm{padding:.35rem .8rem;font-size:.8rem}
+/* Progress bar */
+.progress-wrap{margin:.75rem 0;display:none}
+.progress-wrap.visible{display:block}
+.progress-label{font-size:.8rem;color:var(--text2);margin-bottom:.3rem}
+.progress-bar-bg{height:6px;background:var(--border);border-radius:99px;overflow:hidden}
+.progress-bar-fill{height:100%;background:var(--primary);border-radius:99px;width:0;transition:width .3s}
+/* Results */
+.results-panel{margin-top:1rem;display:none}
+.results-panel.visible{display:block}
+.match-row{display:flex;align-items:flex-start;gap:.75rem;padding:.75rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:.5rem}
+.match-rank{font-size:.75rem;font-weight:700;color:var(--text3);min-width:1.5rem}
+.match-body{flex:1;min-width:0}
+.match-pattern{font-size:.8rem;font-weight:600;color:var(--text);font-family:var(--mono)}
+.match-sim{font-size:.75rem;color:var(--text2);margin-top:.15rem}
+.sim-bar-bg{display:inline-block;width:80px;height:6px;background:var(--border);border-radius:99px;vertical-align:middle;margin-left:.4rem;overflow:hidden}
+.sim-bar-fill{display:inline-block;height:100%;background:var(--primary);border-radius:99px}
+.verdict{padding:.75rem 1rem;border-radius:var(--radius);margin-top:.75rem;font-size:.9rem;font-weight:600;border-left:3px solid}
+.verdict.l0{background:var(--success-bg);color:var(--success);border-color:var(--success)}
+.verdict.novel{background:var(--info-bg);color:var(--info);border-color:var(--info)}
+.verdict.insufficient{background:var(--bg2);color:var(--text2);border-color:var(--border)}
+.verdict-label{font-size:.75rem;font-weight:400;opacity:.8;display:block;margin-top:.2rem}
+/* Disclaimer box */
+.note{font-size:.8rem;color:var(--text2);border-left:3px solid var(--border);padding:.5rem .75rem;margin-top:.75rem;background:var(--surface2);border-radius:0 var(--radius) var(--radius) 0}
+/* Save contract */
+.controls-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:.75rem}
+@media(max-width:480px){.controls-row{grid-template-columns:1fr}}
+label{display:block;font-size:.8rem;font-weight:600;color:var(--text2);margin-bottom:.3rem}
+input[type=range]{width:100%;accent-color:var(--primary)}
+select{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:.45rem .6rem;color:var(--text);font-size:.9rem;outline:none}
+select:focus{border-color:var(--primary)}
+.conf-val{font-weight:700;color:var(--primary);font-family:var(--mono)}
+.memory-state{margin-top:1rem}
+.memory-table{width:100%;border-collapse:collapse;font-size:.8rem;margin-top:.5rem}
+.memory-table th,.memory-table td{padding:.4rem .6rem;text-align:left;border-bottom:1px solid var(--border)}
+.memory-table th{color:var(--text2);font-weight:600;background:var(--bg2)}
+.memory-table td{color:var(--text);font-family:var(--mono);font-size:.75rem}
+.memory-table tr:last-child td{border-bottom:none}
+.memory-empty{color:var(--text3);font-size:.85rem;font-style:italic;padding:.5rem 0}
+/* Architecture SVG wrapper */
+.arch-wrap{overflow-x:auto;margin:1rem 0}
+.arch-wrap svg{display:block;max-width:100%;height:auto}
+/* Evaluation */
+.eval-honest{background:var(--info-bg);border:1px solid var(--info);border-radius:var(--radius);padding:.75rem 1rem;font-size:.85rem;color:var(--info);margin-bottom:1rem}
+/* Limitations list */
+.limit-list{list-style:none;padding:0}
+.limit-list li{padding:.35rem 0;padding-left:1.25rem;position:relative;font-size:.9rem;color:var(--text2)}
+.limit-list li::before{content:"×";position:absolute;left:0;color:var(--error);font-weight:700}
+/* Footer */
+footer{background:var(--surface);border-top:1px solid var(--border);padding:1.25rem 16px;margin-top:1rem}
+.footer-inner{max-width:860px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem}
+.footer-inner p{font-size:.85rem;color:var(--text2)}
+/* Error message inline */
+.inline-error{color:var(--error);font-size:.85rem;margin-top:.4rem}
+.inline-success{color:var(--success);font-size:.85rem;margin-top:.4rem}
+/* Tag */
+.tag{display:inline-block;font-size:.7rem;padding:.15rem .45rem;border-radius:4px;font-family:var(--mono);font-weight:600;background:var(--primary-bg);color:var(--primary)}
+</style>
+</head>
+<body>
+
+<noscript>
+  <div style="padding:2rem;text-align:center;font-family:sans-serif">
+    <strong>JavaScript is required</strong> for the interactive playground on this page.
+    Please enable JavaScript to continue.
+  </div>
+</noscript>
+
+<div class="banner">
+  <strong>Research prototype (v0).</strong> A reworked successor system is in progress;
+  this page describes the first version, including what it does not do.
+</div>
+
+<header>
+  <div class="header-inner">
+    <div>
+      <div class="site-title">Zero<span>Ops</span> Copilot</div>
+      <div class="site-desc">A multi-agent prototype for autonomous incident triage and prevention</div>
+    </div>
+    <div style="font-size:.8rem;color:var(--text3)">
+      <a href="https://github.com/dovahkkin1234/zeroops-copilot" target="_blank" rel="noopener">Source on GitHub</a>
+    </div>
+  </div>
+</header>
+
+<main>
+<div class="container">
+
+<!-- ───────────────────────── PLAYGROUND ───────────────────────── -->
+<section id="playground">
+  <h2>Live Playground</h2>
+  <p class="section-intro">
+    Paste an error or pick one of the five fixture errors below.
+    The page embeds it in-browser using <code>all-MiniLM-L6-v2</code> (ONNX via transformers.js),
+    compares it against three authored seed incidents, and applies the documented triage rule
+    deterministically — no LLM call, no backend.
+  </p>
+
+  <div class="fixture-row">
+    <button class="fixture-btn" data-idx="0">bug1 · AttributeError</button>
+    <button class="fixture-btn" data-idx="1">bug2 · ImportError</button>
+    <button class="fixture-btn" data-idx="2">bug3 · TypeError</button>
+    <button class="fixture-btn" data-idx="3">bug4 · AttributeError variant</button>
+    <button class="fixture-btn" data-idx="4">bug5 · test collection error</button>
+  </div>
+
+  <textarea id="error-input" placeholder="Paste a Python stack trace here, or click a fixture above…"></textarea>
+
+  <div style="margin-top:.6rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap">
+    <button class="btn btn-primary" id="analyze-btn">Analyze</button>
+    <span id="model-status" style="font-size:.8rem;color:var(--text2)">Model not loaded — click Analyze to load (~25 MB)</span>
+  </div>
+
+  <div class="progress-wrap" id="progress-wrap">
+    <div class="progress-label" id="progress-label">Loading model…</div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-bar"></div></div>
+  </div>
+
+  <div id="model-error" style="display:none" class="inline-error">
+    Could not load the embedding model. Check your connection or try a different browser.
+  </div>
+
+  <div class="results-panel" id="results-panel">
+    <h3 style="margin-bottom:.5rem">Top matches from seed memory</h3>
+    <div id="match-list"></div>
+    <div id="triage-verdict"></div>
+    <div class="note">
+      Similarity computed in-browser with <strong>all-MiniLM-L6-v2</strong> (ONNX,
+      <code>@huggingface/transformers@4.3.2</code>).
+      The triage rule (≥ 0.85 + same error type → L0; 0.70–0.85 → novel with hint; else → novel)
+      is applied deterministically here, as a faithful illustration of the rule the LLM applies
+      in the full system.
+      Seed incidents are <strong>authored examples</strong>, not results from a real agent run.
+    </div>
+  </div>
+
+  <!-- Seed details (collapsed) -->
+  <details style="margin-top:1rem">
+    <summary style="font-size:.85rem;color:var(--text2);cursor:pointer">View seed incidents used for comparison</summary>
+    <div id="seed-list" style="margin-top:.75rem"></div>
+  </details>
+</section>
+
+<!-- ───────────────────────── SAVE CONTRACT ───────────────────────── -->
+<section id="memory">
+  <h2>Memory Save-Contract Widget</h2>
+  <p class="section-intro">
+    After an incident is resolved, the agent saves it to SQLite memory — but only when the save
+    contract is satisfied. This widget mirrors the contract from
+    <code>src/zeroops/memory/store.py</code> exactly: set confidence and resolution status, then
+    attempt a save. The upsert key is the <em>normalized</em> error signature, not the raw text.
+  </p>
+
+  <div class="card">
+    <div class="controls-row">
+      <div>
+        <label for="conf-slider">Confidence: <span class="conf-val" id="conf-display">0.75</span></label>
+        <input type="range" id="conf-slider" min="0" max="1" step="0.05" value="0.75">
+        <div style="display:flex;justify-content:space-between;font-size:.7rem;color:var(--text3)"><span>0.0</span><span>0.5 (threshold)</span><span>1.0</span></div>
+      </div>
+      <div>
+        <label for="status-select">Resolution Status</label>
+        <select id="status-select">
+          <option value="resolved">resolved</option>
+          <option value="known_pattern">known_pattern</option>
+          <option value="uncertain">uncertain</option>
+        </select>
+      </div>
+    </div>
+    <div style="font-size:.8rem;color:var(--text2);margin-bottom:.75rem">
+      Error text source: the textarea in the playground above (edit it there to test different inputs).
+    </div>
+    <button class="btn btn-primary btn-sm" id="save-btn">Save to Memory</button>
+    <div id="save-result" style="margin-top:.6rem"></div>
+
+    <div class="memory-state">
+      <h3>In-memory table <span style="font-size:.75rem;font-weight:400;color:var(--text3)">(resets on page reload)</span></h3>
+      <div id="memory-table-wrap">
+        <div class="memory-empty">No incidents saved yet.</div>
+      </div>
+    </div>
+    <div class="note" style="margin-top:1rem">
+      This mirrors <code>store.py:save_incident()</code>.
+      Contract: reject if confidence &lt; 0.5 or resolution_status == "uncertain"; upsert when the
+      normalized error signature matches an existing row.
+      Normalization strips file paths to basenames, replaces line numbers with <code>N</code>,
+      memory addresses with <code>0xADDR</code>, and PIDs with <code>N</code>.
+      The JS normalization is a direct port of the Python regex chain in
+      <code>src/zeroops/memory/embeddings.py:normalize_error_signature()</code>.
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────────────── ARCHITECTURE ───────────────────────── -->
+<section id="how-it-works">
+  <h2>How It Works</h2>
+  <p class="section-intro">
+    Three agents on one LangGraph, sharing state, a tool catalog, and SQLite memory.
+    The evaluator's <code>give_up</code> path is a first-class outcome: honest uncertainty
+    beats a confident wrong answer.
+  </p>
+
+  <div class="arch-wrap">
+    <svg viewBox="0 0 760 195" xmlns="http://www.w3.org/2000/svg"
+         aria-label="Architecture diagram: Error input flows to Triage. A dashed green arc shows the L0 fast-path directly to Reporter. For novel errors, Triage routes into the Investigator sub-graph (Planner, Tool Executor, Evaluator loop), then Hypothesizer, Verifier, Problem Manager, and finally Reporter. Memory spans the bottom, connecting to Triage and Reporter.">
+      <defs>
+        <marker id="arr" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="auto">
+          <path d="M0,0 L0,5 L7,2.5 z" fill="#94a3b8"/>
+        </marker>
+        <marker id="arr-g" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="auto">
+          <path d="M0,0 L0,5 L7,2.5 z" fill="#059669"/>
+        </marker>
+        <marker id="arr-p" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="auto">
+          <path d="M0,0 L0,5 L7,2.5 z" fill="#6366f1"/>
+        </marker>
+      </defs>
+
+      <!-- colour tokens replicated as SVG literal fallbacks -->
+      <!-- boxes: fill #fff/dark-surface, stroke border -->
+
+      <!-- ── Input ── -->
+      <rect x="4" y="62" width="68" height="32" rx="5"
+            style="fill:var(--surface);stroke:var(--border);stroke-width:1.4"/>
+      <text x="38" y="78" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:10px;fill:var(--text)">Error input</text>
+
+      <!-- Input → Triage -->
+      <line x1="72" y1="78" x2="99" y2="78"
+            style="stroke:#94a3b8;stroke-width:1.4" marker-end="url(#arr)"/>
+
+      <!-- ── Triage ── -->
+      <rect x="100" y="52" width="88" height="52" rx="5"
+            style="fill:var(--surface);stroke:var(--border);stroke-width:1.4"/>
+      <text x="144" y="71" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:10.5px;font-weight:700;fill:var(--text)">Triage</text>
+      <text x="144" y="84" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:8.5px;fill:var(--text2)">similarity search</text>
+      <text x="144" y="96" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:8.5px;fill:var(--text2)">+ LLM classify</text>
+
+      <!-- L0 fast-path arc: Triage → Reporter (green dashed) -->
+      <path d="M188,65 Q380,12 618,65" fill="none"
+            style="stroke:#059669;stroke-width:1.4;stroke-dasharray:5 3"
+            marker-end="url(#arr-g)"/>
+      <text x="380" y="22" text-anchor="middle"
+            style="font-family:var(--font);font-size:8.5px;fill:#059669">≥ 0.85 similarity + same error type → L0 fast-path</text>
+
+      <!-- Triage → Investigator (novel) -->
+      <line x1="188" y1="78" x2="209" y2="78"
+            style="stroke:#94a3b8;stroke-width:1.4" marker-end="url(#arr)"/>
+      <text x="198" y="72" text-anchor="middle"
+            style="font-family:var(--font);font-size:7.5px;fill:var(--text3)">novel</text>
+
+      <!-- ── Investigator sub-graph ── -->
+      <rect x="210" y="44" width="302" height="68" rx="6"
+            style="fill:var(--bg2);stroke:var(--border);stroke-width:1;stroke-dasharray:5 3"/>
+      <text x="220" y="56" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:8px;font-style:italic;fill:var(--text3)">Investigator</text>
+
+      <!-- Planner -->
+      <rect x="218" y="62" width="66" height="30" rx="5"
+            style="fill:var(--surface);stroke:var(--border);stroke-width:1.3"/>
+      <text x="251" y="77" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:9.5px;fill:var(--text)">Planner</text>
+
+      <!-- Planner → Tool Executor -->
+      <line x1="284" y1="77" x2="300" y2="77"
+            style="stroke:#94a3b8;stroke-width:1.3" marker-end="url(#arr)"/>
+
+      <!-- Tool Executor -->
+      <rect x="301" y="62" width="66" height="30" rx="5"
+            style="fill:var(--surface);stroke:var(--border);stroke-width:1.3"/>
+      <text x="334" y="72" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:9.5px;fill:var(--text)">Tool</text>
+      <text x="334" y="83" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:9.5px;fill:var(--text)">Executor</text>
+
+      <!-- Tool Executor → Evaluator -->
+      <line x1="367" y1="77" x2="383" y2="77"
+            style="stroke:#94a3b8;stroke-width:1.3" marker-end="url(#arr)"/>
+
+      <!-- Evaluator -->
+      <rect x="384" y="55" width="118" height="46" rx="5"
+            style="fill:var(--surface);stroke:var(--primary);stroke-width:1.5"/>
+      <text x="443" y="71" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:9.5px;font-weight:700;fill:var(--text)">Evaluator</text>
+      <text x="443" y="83" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:8px;fill:var(--text2)">continue / hypothesize</text>
+      <text x="443" y="93" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:8px;fill:var(--text2)">/ give_up ✓</text>
+
+      <!-- Loop back arc: Evaluator → Planner (continue) -->
+      <path d="M443,101 Q340,130 251,92" fill="none"
+            style="stroke:#94a3b8;stroke-width:1.2;stroke-dasharray:4 3"
+            marker-end="url(#arr)"/>
+      <text x="348" y="130" text-anchor="middle"
+            style="font-family:var(--font);font-size:8px;fill:var(--text3)">continue (up to 8×)</text>
+
+      <!-- Evaluator → Hypothesizer (hypothesize) -->
+      <line x1="502" y1="77" x2="518" y2="77"
+            style="stroke:#94a3b8;stroke-width:1.3" marker-end="url(#arr)"/>
+
+      <!-- ── Hypothesizer ── -->
+      <rect x="519" y="62" width="78" height="30" rx="5"
+            style="fill:var(--surface);stroke:var(--border);stroke-width:1.3"/>
+      <text x="558" y="77" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:9px;fill:var(--text)">Hypothesizer</text>
+
+      <!-- Hypothesizer → Verifier -->
+      <line x1="597" y1="77" x2="612" y2="77"
+            style="stroke:#94a3b8;stroke-width:1.3" marker-end="url(#arr)"/>
+
+      <!-- ── Verifier ── -->
+      <rect x="613" y="62" width="68" height="30" rx="5"
+            style="fill:var(--surface);stroke:var(--border);stroke-width:1.3"/>
+      <text x="647" y="77" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:9px;fill:var(--text)">Verifier</text>
+
+      <!-- Verifier → Problem Manager (down then right) -->
+      <path d="M647,92 L647,115 L590,115" fill="none"
+            style="stroke:#94a3b8;stroke-width:1.3" marker-end="url(#arr)"/>
+
+      <!-- ── Problem Manager ── -->
+      <rect x="490" y="104" width="98" height="30" rx="5"
+            style="fill:var(--surface);stroke:var(--border);stroke-width:1.3"/>
+      <text x="539" y="119" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:9px;fill:var(--text)">Problem Manager</text>
+
+      <!-- Problem Manager → Reporter -->
+      <path d="M490,119 L440,119 L440,100 Q440,78 618,78" fill="none"
+            style="stroke:#94a3b8;stroke-width:1.3" marker-end="url(#arr)"/>
+
+      <!-- give_up path: Evaluator → Reporter (dashed) -->
+      <path d="M502,65 Q570,30 618,70" fill="none"
+            style="stroke:#94a3b8;stroke-width:1.2;stroke-dasharray:3 3"
+            marker-end="url(#arr)"/>
+      <text x="556" y="38" text-anchor="middle"
+            style="font-family:var(--font);font-size:7.5px;fill:var(--text3)">give_up</text>
+
+      <!-- ── Reporter ── -->
+      <rect x="619" y="52" width="84" height="52" rx="5"
+            style="fill:var(--surface);stroke:var(--border);stroke-width:1.4"/>
+      <text x="661" y="72" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:10.5px;font-weight:700;fill:var(--text)">Reporter</text>
+      <text x="661" y="84" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:8.5px;fill:var(--text2)">Postmortem</text>
+      <text x="661" y="96" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:8.5px;fill:var(--text2)">+ Markdown</text>
+
+      <!-- ── Memory bar ── -->
+      <rect x="100" y="156" width="603" height="28" rx="5"
+            style="fill:var(--primary-bg);stroke:var(--primary);stroke-width:1.3"/>
+      <text x="401" y="170" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:9.5px;font-weight:600;fill:var(--primary)">Memory — SQLite + all-MiniLM-L6-v2 embeddings</text>
+      <text x="265" y="182" text-anchor="middle"
+            style="font-family:var(--font);font-size:7.5px;fill:var(--text3)">read (similarity search)</text>
+      <text x="590" y="182" text-anchor="middle"
+            style="font-family:var(--font);font-size:7.5px;fill:var(--text3)">write on resolve</text>
+
+      <!-- Memory ↑ Triage -->
+      <line x1="144" y1="156" x2="144" y2="104"
+            style="stroke:var(--primary);stroke-width:1;stroke-dasharray:3 2"
+            marker-end="url(#arr-p)"/>
+      <!-- Memory ↑ Reporter -->
+      <line x1="661" y1="156" x2="661" y2="104"
+            style="stroke:var(--primary);stroke-width:1;stroke-dasharray:3 2"
+            marker-end="url(#arr-p)"/>
+
+    </svg>
+  </div>
+  <!-- Fallback text description for the SVG -->
+  <div class="note">
+    <strong>Flow:</strong> Error → <strong>Triage</strong> (memory search + LLM classify) → if
+    similarity ≥ 0.85 and same error type, <em>L0 fast-path</em> to Reporter; otherwise
+    <strong>Planner</strong> → <strong>Tool Executor</strong> → <strong>Evaluator</strong>
+    (loop up to 8×: <em>continue</em> back to Planner, <em>hypothesize</em> forward, or
+    <em>give_up</em> — a first-class outcome) → <strong>Hypothesizer</strong> →
+    <strong>Verifier</strong> (repro script) → <strong>Problem Manager</strong>
+    (scan codebase for same pattern) → <strong>Reporter</strong> (Postmortem + Markdown).
+    <strong>Memory</strong> (SQLite + embeddings): written after resolution, read at Triage.
+  </div>
+
+  <div style="margin-top:1.25rem">
+    <h3>The evaluator loop</h3>
+    <p class="section-intro" style="margin-bottom:0">
+      After every tool call the Evaluator decides one of three things:
+      <code>continue</code> (need more evidence),
+      <code>hypothesize</code> (evidence is sufficient), or
+      <code>give_up</code> (contradictory evidence or budget exhausted).
+      <code>give_up</code> is a first-class outcome, not an error state.
+      A correct "I don't know, here is what I tried" is a better signal than a confident wrong answer.
+      This bounded ReAct loop — capped at 8 iterations — is what distinguishes the system from a
+      linear chain.
+    </p>
+  </div>
+</section>
+
+<!-- ───────────────────────── EVALUATION ───────────────────────── -->
+<section id="evaluation">
+  <h2>Evaluation</h2>
+
+  <div class="eval-honest">
+    No benchmark has been run against the full agent. This page makes no performance claims.
+  </div>
+
+  <p style="font-size:.9rem;color:var(--text2);max-width:680px">
+    The benchmark is designed but not yet run. It uses <code>eval/benchmark.py</code> and five
+    seeded bugs in <code>demo_repo/</code>, running in two phases:
+  </p>
+
+  <ul style="margin:.75rem 0 .75rem 1.25rem;font-size:.9rem;color:var(--text2)">
+    <li><strong>Phase A — cold start:</strong> bugs 1, 2, 3, 5 against empty memory.
+        Resolved incidents are persisted to SQLite after each run.</li>
+    <li><strong>Phase B — warm memory:</strong> bug 4 (a deliberate variant of bug 1's
+        <code>incomplete_symbol_rename</code> pattern) against the now-populated memory.
+        A correct system routes it to the L0 path without re-investigating.</li>
+  </ul>
+
+  <p style="font-size:.9rem;color:var(--text2);max-width:680px">
+    Eight metrics per bug: triage accuracy, investigator pattern accuracy, investigator
+    root-cause accuracy, Problem Manager coverage, tickets prevented, resolution status,
+    tools called, and wall-clock duration. When results are run and committed to
+    <code>eval/results/</code>, they will be linked here with provider, model, and backend
+    metadata. Until then this section describes design only.
+  </p>
+</section>
+
+<!-- ───────────────────────── LIMITATIONS ───────────────────────── -->
+<section id="limitations">
+  <h2>Limitations</h2>
+  <p class="section-intro">Stated plainly, so a reviewer knows exactly what this is and is not.</p>
+  <ul class="limit-list">
+    <li>Memory is flat embedding retrieval, not a knowledge graph — no cross-incident
+        relationship modeling, no entity resolution, no GraphRAG.</li>
+    <li>No personalization or user modeling — every query is treated identically.</li>
+    <li>Benchmark is small (n = 5 bugs), synthetic, and authored by the same person who built
+        the agent — confidence calibration is self-reported, not externally validated.</li>
+    <li>This page demonstrates memory retrieval and the save contract in-browser.
+        It does <strong>not</strong> run the LLM agent loop — that requires a model backend
+        not available in a static page.</li>
+    <li>Repro execution (<code>REPRO_EXECUTION_ENABLED</code>) is off by default; the Verifier
+        node generates a script but does not run it in this version.</li>
+    <li>No streaming UI for the investigation trace in this version.</li>
+    <li>Scoped to Python single-service synchronous stack traces only — distributed traces,
+        async bugs, and infrastructure failures are explicitly out of scope.</li>
+  </ul>
+</section>
+
+<!-- ───────────────────────── WHAT'S NEXT ───────────────────────── -->
+<section id="whats-next">
+  <h2>What's Next</h2>
+  <p style="font-size:.9rem;color:var(--text2);max-width:680px">
+    The three-agent pattern generalizes to the broader ITIL taxonomy — service requests,
+    change management, and event correlation. Directions being considered for a reworked
+    successor: graph-structured memory linking incidents to affected files, root-cause patterns,
+    and commits (the missing piece for GraphRAG-style retrieval); a personalization layer that
+    adapts routing thresholds and investigation depth to individual on-call engineers over time;
+    a streaming investigation UI for human-in-the-loop review; and running the benchmark on
+    broader, externally-sourced incident corpora to move beyond the current self-authored fixture
+    set. These are directions, not commitments — the first version is what it is.
+  </p>
+</section>
+
+</div><!-- /container -->
+</main>
+
+<footer>
+  <div class="footer-inner">
+    <p>Shirish Giroti · IIITDM Kancheepuram · 2026</p>
+    <p>
+      <a href="https://github.com/dovahkkin1234/zeroops-copilot" target="_blank" rel="noopener">
+        Source on GitHub
+      </a>
+    </p>
+  </div>
+</footer>
+
+<script type="module">
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const CDN = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2/dist/transformers.web.min.js';
+
+const FIXTURES = [
+  {
+    label: 'bug1 — AttributeError (validate_token)',
+    text: `Traceback (most recent call last):\n  File "middleware.py", line 6, in require_auth\n    if not validate_token(token):\nAttributeError: module 'auth' has no attribute 'validate_token'`,
+  },
+  {
+    label: 'bug2 — ImportError (normalize_string)',
+    text: `Traceback (most recent call last):\n  File "db.py", line 2, in <module>\n    from utils import normalize_string\nImportError: cannot import name 'normalize_string' from 'utils'`,
+  },
+  {
+    label: 'bug3 — TypeError (NoneType unpack)',
+    text: `Traceback (most recent call last):\n  File "app.py", line 6, in get_events_on\n    year, month, day = parts\nTypeError: cannot unpack non-iterable NoneType object`,
+  },
+  {
+    label: 'bug4 — AttributeError variant (validate_token, different file)',
+    text: `Traceback (most recent call last):\n  File "handlers.py", line 12, in check_session\n    if not validate_token(session_token):\nAttributeError: module 'auth' has no attribute 'validate_token'`,
+  },
+  {
+    label: 'bug5 — test collection ImportError',
+    text: `ERROR: collecting tests/test_auth.py\nImportError while importing test module 'tests/test_auth.py'.\n    from auth import validate_token\nImportError: cannot import name 'validate_token' from 'auth'`,
+  },
+];
+
+// Authored seed incidents — clearly not from a real agent run.
+const SEEDS = [
+  {
+    id: 1,
+    label: 'Seed A (authored)',
+    pattern: 'incomplete_symbol_rename',
+    error_type: 'AttributeError',
+    root_cause: 'validate_token was renamed to verify_token in auth.py; callers in api/middleware.py not updated',
+    error_text: `Traceback (most recent call last):\n  File "api/middleware.py", line 15, in authenticate\n    result = validate_token(bearer_token)\nAttributeError: module 'auth' has no attribute 'validate_token'`,
+  },
+  {
+    id: 2,
+    label: 'Seed B (authored)',
+    pattern: 'unchecked_none_return',
+    error_type: 'TypeError',
+    root_cause: 'parse_date returns None for invalid input; caller unpacks result without None check',
+    error_text: `Traceback (most recent call last):\n  File "reports/generator.py", line 22, in generate_report\n    start, end = parse_date(request_date)\nTypeError: cannot unpack non-iterable NoneType object`,
+  },
+  {
+    id: 3,
+    label: 'Seed C (authored)',
+    pattern: 'stale_import',
+    error_type: 'ImportError',
+    root_cause: 'normalize_string was renamed to normalize_text; integration test still uses old name',
+    error_text: `ERROR: collecting integration/test_db.py\nImportError while importing test module 'integration/test_db.py'.\n    from utils import normalize_string\nImportError: cannot import name 'normalize_string' from 'utils'`,
+  },
+];
+
+// ─── Normalization (JS port of embeddings.py:normalize_error_signature) ───────
+
+function normalizeErrorSig(text) {
+  let s = text;
+  // 1. File paths → basenames (handles / and \)
+  s = s.replace(/File\s+["']([^"']+)["']/g, (_, p) => {
+    const base = p.replace(/\\/g, '/').split('/').pop();
+    return `File "${base}"`;
+  });
+  // 2. Line numbers → N
+  s = s.replace(/, line \d+/g, ', line N');
+  // 3. Memory addresses → 0xADDR
+  s = s.replace(/0x[0-9a-fA-F]+/g, '0xADDR');
+  // 4. Process IDs → N
+  s = s.replace(/pid=\d+/g, 'pid=N');
+  return s.trim();
+}
+
+// ─── Error-type parsing ────────────────────────────────────────────────────────
+
+function parseErrorType(text) {
+  const lines = text.trim().split('\n').map(l => l.trim()).filter(Boolean);
+  for (let i = lines.length - 1; i >= 0; i--) {
+    // "AttributeError: module …"
+    const m = lines[i].match(/^([A-Za-z][A-Za-z0-9_]*(Error|Exception|Warning|Fault))[\s:]/);
+    if (m) return m[1];
+    // bare "ImportError"
+    const m2 = lines[i].match(/^([A-Za-z][A-Za-z0-9_]*(Error|Exception|Warning))$/);
+    if (m2) return m2[1];
+  }
+  return null;
+}
+
+// ─── Cosine similarity ────────────────────────────────────────────────────────
+
+function cosineSim(a, b) {
+  let dot = 0, na = 0, nb = 0;
+  const len = Math.min(a.length, b.length);
+  for (let i = 0; i < len; i++) { dot += a[i] * b[i]; na += a[i] * a[i]; nb += b[i] * b[i]; }
+  if (na === 0 || nb === 0) return 0;
+  return dot / (Math.sqrt(na) * Math.sqrt(nb));
+}
+
+// ─── Triage rule ──────────────────────────────────────────────────────────────
+
+function triageRule(topSim, topErrorType, queryErrorType) {
+  if (topSim >= 0.85 && topErrorType === queryErrorType) {
+    return { cls: 'known_pattern', tier: 'L0', cssClass: 'l0',
+      text: `Known pattern — L0 auto-resolve (similarity ${topSim.toFixed(3)} ≥ 0.85, same error type)` };
+  }
+  if (topSim >= 0.70) {
+    return { cls: 'novel', tier: 'L2', cssClass: 'novel',
+      text: `Novel — L2 investigation (similarity ${topSim.toFixed(3)} in [0.70, 0.85); match attached as hint)` };
+  }
+  if (queryErrorType === null) {
+    return { cls: 'insufficient_info', tier: '—', cssClass: 'insufficient',
+      text: 'Insufficient info — could not parse an error type from the input' };
+  }
+  return { cls: 'novel', tier: 'L2', cssClass: 'novel',
+    text: `Novel — L2 investigation (top similarity ${topSim.toFixed(3)} < 0.70; no strong match)` };
+}
+
+// ─── Model state ─────────────────────────────────────────────────────────────
+
+let extractor = null;
+let seedEmbeddings = null;
+
+async function loadModel() {
+  if (extractor) return;
+  const progWrap = document.getElementById('progress-wrap');
+  const progBar = document.getElementById('progress-bar');
+  const progLabel = document.getElementById('progress-label');
+  const modelStatus = document.getElementById('model-status');
+  const modelError = document.getElementById('model-error');
+
+  progWrap.classList.add('visible');
+  modelError.style.display = 'none';
+
+  try {
+    const { pipeline, env } = await import(CDN);
+    // Prefer CDN; guard in case env shape changes across versions
+    if (env && 'allowLocalModels' in env) env.allowLocalModels = false;
+
+    extractor = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+      progress_callback: (p) => {
+        if (p && p.progress != null) {
+          const pct = Math.round(p.progress);
+          progBar.style.width = pct + '%';
+          progLabel.textContent = `Loading model… ${pct}%${p.file ? ' (' + p.file + ')' : ''}`;
+        }
+      },
+    });
+
+    progLabel.textContent = 'Embedding seed incidents…';
+    seedEmbeddings = [];
+    for (const seed of SEEDS) {
+      const out = await extractor(seed.error_text, { pooling: 'mean', normalize: true });
+      seedEmbeddings.push(Array.from(out.data));
+    }
+
+    progWrap.classList.remove('visible');
+    modelStatus.textContent = 'Model ready (all-MiniLM-L6-v2, 384-dim)';
+    modelStatus.style.color = 'var(--success)';
+  } catch (e) {
+    progWrap.classList.remove('visible');
+    modelError.style.display = 'block';
+    modelStatus.textContent = 'Model failed to load.';
+    extractor = null;
+    seedEmbeddings = null;
+    throw e;
+  }
+}
+
+// ─── Analyze ──────────────────────────────────────────────────────────────────
+
+document.getElementById('analyze-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('analyze-btn');
+  const input = document.getElementById('error-input').value.trim();
+  if (!input) { alert('Please paste an error or click a fixture first.'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
+  try {
+    await loadModel();
+
+    const qOut = await extractor(input, { pooling: 'mean', normalize: true });
+    const qEmb = Array.from(qOut.data);
+    const qType = parseErrorType(input);
+
+    const scored = SEEDS.map((seed, i) => ({
+      seed,
+      sim: cosineSim(qEmb, seedEmbeddings[i]),
+    })).sort((a, b) => b.sim - a.sim);
+
+    renderResults(scored, qType, input);
+  } catch (e) {
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Analyze';
+  }
+});
+
+function renderResults(scored, qType, input) {
+  const panel = document.getElementById('results-panel');
+  const matchList = document.getElementById('match-list');
+  const verdictEl = document.getElementById('triage-verdict');
+
+  matchList.innerHTML = '';
+  scored.forEach((item, rank) => {
+    const pct = Math.round(item.sim * 100);
+    const div = document.createElement('div');
+    div.className = 'match-row';
+    div.innerHTML = `
+      <div class="match-rank">#${rank + 1}</div>
+      <div class="match-body">
+        <div class="match-pattern">${item.seed.label} · <span class="tag">${item.seed.pattern}</span></div>
+        <div class="match-sim">
+          Similarity: <strong>${item.sim.toFixed(4)}</strong>
+          <span class="sim-bar-bg"><span class="sim-bar-fill" style="width:${pct}%"></span></span>
+          &nbsp;· Error type in seed: <code>${item.seed.error_type}</code>
+        </div>
+        <div style="font-size:.75rem;color:var(--text2);margin-top:.2rem">${item.seed.root_cause}</div>
+      </div>`;
+    matchList.appendChild(div);
+  });
+
+  const top = scored[0];
+  const v = triageRule(top.sim, top.seed.error_type, qType);
+
+  verdictEl.innerHTML = `
+    <div class="verdict ${v.cssClass}">
+      Triage verdict: <strong>${v.cls}</strong> · Tier: <strong>${v.tier}</strong>
+      <span class="verdict-label">${v.text}${qType ? '' : ' (error type could not be parsed)'}</span>
+    </div>`;
+
+  panel.classList.add('visible');
+}
+
+// ─── Fixture buttons ──────────────────────────────────────────────────────────
+
+document.querySelectorAll('.fixture-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const idx = parseInt(btn.dataset.idx);
+    document.getElementById('error-input').value = FIXTURES[idx].text;
+  });
+});
+
+// ─── Seed list display ────────────────────────────────────────────────────────
+
+const seedListEl = document.getElementById('seed-list');
+SEEDS.forEach(seed => {
+  const div = document.createElement('div');
+  div.style.cssText = 'margin-bottom:.75rem';
+  div.innerHTML = `
+    <div style="font-size:.8rem;font-weight:600;margin-bottom:.3rem">
+      ${seed.label} · <span class="tag">${seed.pattern}</span>
+    </div>
+    <pre style="font-size:.75rem">${escHtml(seed.error_text)}</pre>
+    <div style="font-size:.75rem;color:var(--text2);margin-top:.2rem">Root cause: ${seed.root_cause}</div>`;
+  seedListEl.appendChild(div);
+});
+
+// ─── Save contract ────────────────────────────────────────────────────────────
+
+const savedIncidents = [];
+
+const confSlider = document.getElementById('conf-slider');
+const confDisplay = document.getElementById('conf-display');
+confSlider.addEventListener('input', () => {
+  confDisplay.textContent = parseFloat(confSlider.value).toFixed(2);
+});
+
+document.getElementById('save-btn').addEventListener('click', () => {
+  const errorText = document.getElementById('error-input').value.trim();
+  if (!errorText) { showSaveResult('error', 'Error text is empty. Paste an error in the playground textarea first.'); return; }
+  const confidence = parseFloat(confSlider.value);
+  const resStatus = document.getElementById('status-select').value;
+
+  try {
+    const result = saveIncident(errorText, confidence, resStatus);
+    showSaveResult('success', `${result.action === 'inserted' ? '✓ Inserted' : '↩ Upserted'} — id ${result.id}. Normalized signature: "${escHtml(normalizeErrorSig(errorText).slice(0,80))}…"`);
+    renderMemoryTable();
+  } catch (e) {
+    showSaveResult('error', `✗ Rejected: ${e.message}`);
+  }
+});
+
+function saveIncident(errorText, confidence, resolutionStatus) {
+  if (confidence < 0.5) throw new Error(`Confidence ${confidence.toFixed(2)} below threshold 0.5 — not saving`);
+  if (resolutionStatus === 'uncertain') throw new Error('Uncertain incidents are not saved to memory');
+  const sig = normalizeErrorSig(errorText);
+  const idx = savedIncidents.findIndex(i => i.error_signature === sig);
+  if (idx >= 0) {
+    savedIncidents[idx].confidence = confidence;
+    savedIncidents[idx].resolution_status = resolutionStatus;
+    savedIncidents[idx].updated_at = new Date().toISOString().slice(0,19);
+    return { action: 'upserted', id: savedIncidents[idx].id };
+  }
+  const id = savedIncidents.length + 1;
+  savedIncidents.push({ id, error_signature: sig, confidence, resolution_status: resolutionStatus, created_at: new Date().toISOString().slice(0,19) });
+  return { action: 'inserted', id };
+}
+
+function showSaveResult(type, msg) {
+  const el = document.getElementById('save-result');
+  el.className = type === 'error' ? 'inline-error' : 'inline-success';
+  el.innerHTML = msg;
+}
+
+function renderMemoryTable() {
+  const wrap = document.getElementById('memory-table-wrap');
+  if (!savedIncidents.length) {
+    wrap.innerHTML = '<div class="memory-empty">No incidents saved yet.</div>';
+    return;
+  }
+  wrap.innerHTML = `<table class="memory-table">
+    <thead><tr><th>id</th><th>confidence</th><th>status</th><th>saved/updated</th><th>signature (first 60 chars)</th></tr></thead>
+    <tbody>${savedIncidents.map(i => `<tr>
+      <td>${i.id}</td>
+      <td>${i.confidence.toFixed(2)}</td>
+      <td>${i.resolution_status}</td>
+      <td>${i.updated_at || i.created_at}</td>
+      <td title="${escHtml(i.error_signature)}">${escHtml(i.error_signature.slice(0,60))}…</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+// ─── Utility ──────────────────────────────────────────────────────────────────
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+</script>
+</body>
+</html>
