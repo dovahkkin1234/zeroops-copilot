@@ -144,9 +144,10 @@ For reviewers unfamiliar with AMS vocabulary:
   see Evaluation above.
 - **No web UI.** `server.py` is a placeholder; the CLI is the only
   interface.
-- **No real test suite** for the `zeroops` package itself — the one
-  test file in `demo_repo/tests/` is bug fixture #5, not a test of the
-  agent.
+- **Test suite covers only the offline layer.** `tests/` has 57 pytest
+  tests for models, state, memory (save contract, upsert, search), graph
+  routing, and config — all offline and without an API key. End-to-end
+  agent tests require a model backend and are not included.
 - Python only, single-service, synchronous stack traces. Out of scope:
   distributed traces, async/timing bugs, data-layer issues,
   infrastructure failures.
