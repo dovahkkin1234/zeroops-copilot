@@ -417,7 +417,8 @@ def _persist_results(results: dict, condition: str, timestamp: str,
     return out_dir
 
 
-async def run_benchmark(no_memory: bool = False, rotate_models: str = ""):
+async def run_benchmark(no_memory: bool = False, rotate_models: str = "",
+                        resume_from: str = ""):
     """Run the full benchmark suite.
 
     Args:
@@ -425,32 +426,51 @@ async def run_benchmark(no_memory: bool = False, rotate_models: str = ""):
                    must be investigated from scratch (ablation condition).
         rotate_models: Comma-separated model IDs to cycle through, one per bug.
                        Spreads API calls across multiple free-tier quotas.
-                       Example: "gemini-3.5-flash,gemini-3.6-flash,gemini-3.1-flash-lite,..."
+        resume_from: Path to an existing results directory. Loads its
+                     checkpoint.json, skips already-successful bugs, and
+                     merges new results back into the same directory.
     """
     fixtures_dir = Path(__file__).parent / "fixtures"
     condition = "no_memory" if no_memory else "with_memory"
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
     # Build rotation list (each model gets its own free-tier quota bucket)
     rotation: list[str] = []
     if rotate_models:
         rotation = [m.strip() for m in rotate_models.split(",") if m.strip()]
 
-    # Create the output dir early so checkpoints land there from the first bug
-    out_dir = RESULTS_DIR / timestamp
-    out_dir.mkdir(parents=True, exist_ok=True)
-    checkpoint_path = out_dir / "checkpoint.json"
+    # Resume mode: load existing results, reuse the same output dir
+    existing_results: dict = {}
+    if resume_from:
+        resume_path = Path(resume_from)
+        checkpoint_file = resume_path / "checkpoint.json"
+        if checkpoint_file.exists():
+            existing_results = json.loads(checkpoint_file.read_text(encoding="utf-8"))
+        out_dir = resume_path
+        timestamp = resume_path.name
+        console.print()
+        console.print(f"[bold cyan]═══ ZeroOps Benchmark (resume) ═══[/] condition=[yellow]{condition}[/]")
+        console.print(f"[dim]Resuming → {out_dir}[/]")
+        done = [k for k, v in existing_results.items() if "error" not in v
+                and v.get("resolution_status") not in ("error", None, "")]
+        console.print(f"[dim]Already done: {done} — will re-run the rest[/]")
+    else:
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        out_dir = RESULTS_DIR / timestamp
+        out_dir.mkdir(parents=True, exist_ok=True)
+        console.print()
+        console.print(f"[bold cyan]═══ ZeroOps Copilot Benchmark ═══[/] condition=[yellow]{condition}[/]")
+        console.print(f"[dim]Results → {out_dir}[/]")
 
-    console.print()
-    console.print(f"[bold cyan]═══ ZeroOps Copilot Benchmark ═══[/] condition=[yellow]{condition}[/]")
-    console.print(f"[dim]Results → {out_dir}[/]")
     if rotation:
         console.print(f"[dim]Model rotation: {rotation}[/]")
     console.print()
 
-    # Reset memory for clean slate
-    init_db()
-    reset_db()
+    checkpoint_path = out_dir / "checkpoint.json"
+
+    # Reset memory only for a fresh run (not resume)
+    if not resume_from:
+        init_db()
+        reset_db()
 
     graph = build_graph()
     results = {}
@@ -468,6 +488,11 @@ async def run_benchmark(no_memory: bool = False, rotate_models: str = ""):
         settings.utility_model = model
         return model
 
+    def _already_done(bug_id: str) -> bool:
+        """True if the bug has a successful result in the existing checkpoint."""
+        r = existing_results.get(bug_id, {})
+        return "error" not in r and r.get("resolution_status") not in ("error", None, "")
+
     bug_index = 0
 
     # ── Phase A: cold start (bugs 1, 2, 3, 5) ────────────────────────────────
@@ -476,6 +501,11 @@ async def run_benchmark(no_memory: bool = False, rotate_models: str = ""):
 
     phase_a_bugs = {k: v for k, v in BUGS.items() if v["phase"] == "A"}
     for bug_id, bug_def in phase_a_bugs.items():
+        if _already_done(bug_id):
+            console.print(f"\n[dim]Skipping {bug_id} (already done)[/]")
+            results[bug_id] = existing_results[bug_id]
+            bug_index += 1
+            continue
         override = _apply_rotation(bug_index)
         results[bug_id] = await _run_bug(
             graph, bug_id, bug_def, fixtures_dir, checkpoint_path,
@@ -489,12 +519,17 @@ async def run_benchmark(no_memory: bool = False, rotate_models: str = ""):
     console.print(f"\n[bold yellow]Phase B: {label}[/] ({expected})")
     console.print("─" * 50)
 
-    if no_memory:
+    if no_memory and not resume_from:
         reset_db()
         console.print("[dim]  Memory cleared for ablation run.[/]")
 
     for bug_id, bug_def in BUGS.items():
         if bug_def["phase"] != "B":
+            continue
+        if _already_done(bug_id):
+            console.print(f"\n[dim]Skipping {bug_id} (already done)[/]")
+            results[bug_id] = existing_results[bug_id]
+            bug_index += 1
             continue
         override = _apply_rotation(bug_index)
         scores = await _run_bug(
@@ -513,8 +548,10 @@ async def run_benchmark(no_memory: bool = False, rotate_models: str = ""):
     settings.utility_model = _orig_util
 
     # ── Print and persist ─────────────────────────────────────────────────────
-    _print_results_table(results)
-    _persist_results(results, condition, timestamp, out_dir,
+    # Merge: new results take precedence over existing checkpoint results
+    merged = {**existing_results, **results}
+    _print_results_table(merged)
+    _persist_results(merged, condition, timestamp, out_dir,
                      rotation=rotation or None)
     console.print(f"[bold green]Done.[/] Results saved to {out_dir}")
 
@@ -541,12 +578,23 @@ def main():
             "Comma-separated model IDs to cycle through, one per bug (5 bugs total). "
             "Spreads ~8 API calls per bug across separate free-tier quota buckets. "
             "Example: gemini-3.5-flash,gemini-3.6-flash,gemini-3.1-flash-lite,"
-            "gemini-3.1-pro-preview,gemini-3.1-flash-lite-preview"
+            "gemini-3.1-flash-lite-preview,gemini-3.1-flash-lite"
+        ),
+    )
+    parser.add_argument(
+        "--resume-from",
+        default="",
+        metavar="RESULTS_DIR",
+        help=(
+            "Path to an existing results directory (e.g. eval/results/20261113T113725Z). "
+            "Loads its checkpoint.json, skips already-successful bugs, and merges "
+            "new results back into the same directory. Use after a partial run."
         ),
     )
     args = parser.parse_args()
     asyncio.run(run_benchmark(no_memory=args.no_memory,
-                              rotate_models=args.rotate_models))
+                              rotate_models=args.rotate_models,
+                              resume_from=args.resume_from))
 
 
 if __name__ == "__main__":
