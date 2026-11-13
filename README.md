@@ -106,14 +106,35 @@ L0 fast path once memory has been warmed by an earlier run.
 should hit the L0 path) — and scores 8 metrics per bug (triage
 correctness, pattern correctness, file-localization correctness,
 self-reported confidence, resolution status, tool-call count,
-duration, prevention-ticket count).
+duration, prevention-ticket count). Results are persisted to
+`eval/results/<timestamp>/` as `results.json` and `results.md`.
 
-**Status: the harness is implemented and runnable, but results from a
-full run have not yet been captured in this repo.** The script
-currently prints a `rich` table to the console and does not persist
-output, so there is no committed results file to point to. Anyone citing
-numbers for this project should run it themselves — `uv run python -m
-eval.benchmark` — rather than rely on a prior unsaved run.
+**Run `20261113T113725Z` — full results committed to this repo.**
+
+| Metric | Result | Notes |
+|---|---|---|
+| Pattern accuracy | 4/5 | bug5 (`stale_import`) misidentified |
+| File localization | 2/5 | bugs 2 and 4 found the pattern but not the specific file |
+| Average confidence | 86% | model self-reported; not externally calibrated |
+| L0 routing (bug4) | miss | bug1 confidence=30% fell below the 0.5 save threshold, so it was never written to memory — **this is the save contract working correctly**, not a routing bug |
+| Prevention tickets | 5 total | 1.0 per completed bug on average |
+| Total duration | 643.5s | ~10.7 min for 5 bugs end-to-end |
+
+Provider: `google-gla` (Gemini). Due to the free-tier 20 req/day cap per
+model, each bug ran on a separate Flash/Flash-Lite model (see
+`results.json` → `metadata.per_bug_models` for the per-bug breakdown).
+This is a single-condition run; a multi-model ablation with consistent
+model assignment across bugs would require billing enabled or a local
+model (see `docs/RUNBOOK.md` for Ollama instructions).
+
+**Limitations of this evaluation:**
+
+- n=5 bugs, synthetic, authored by the same person who built the agent —
+  not an independent evaluation
+- Each bug ran on a different model; not a clean single-model measurement
+- Confidence values are model self-reported; no ground-truth calibration
+- The benchmark does not cover distributed traces, async/timing bugs,
+  or any pattern outside the five seeded cases
 
 ## Ticket taxonomy reference
 
@@ -138,13 +159,13 @@ For reviewers unfamiliar with AMS vocabulary:
   identically; there's no per-user or per-team modeling, no implicit
   feedback loop, no notion of a user's history shaping how results are
   presented.
-- **No persisted evaluation results.** The benchmark harness exists and
-  is designed well (deliberate cold/warm-memory split to test the
-  memory path specifically), but no run has been saved to this repo —
-  see Evaluation above.
+- **Small synthetic benchmark.** One run of 5 seeded bugs is committed
+  to `eval/results/`; the bugs were authored by the builder and are not
+  an independent evaluation. See the Evaluation section for the full
+  caveats.
 - **No web UI.** `server.py` is a placeholder; the CLI is the only
   interface.
-- **Test suite covers only the offline layer.** `tests/` has 57 pytest
+- **Test suite covers only the offline layer.** `tests/` has 67 pytest
   tests for models, state, memory (save contract, upsert, search), graph
   routing, and config — all offline and without an API key. End-to-end
   agent tests require a model backend and are not included.
