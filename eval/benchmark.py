@@ -202,16 +202,22 @@ def _build_initial_state() -> dict:
 
 
 async def _run_bug(graph, bug_id: str, bug_def: dict, fixtures_dir: Path,
-                   checkpoint_path: Path | None = None) -> dict:
+                   checkpoint_path: Path | None = None,
+                   model_override: str | None = None) -> dict:
     """Run a single bug through the agent graph. Returns scores dict.
 
+    model_override: if set, settings.llm_model was already switched before this call;
+    we record whatever pydantic_ai_model currently resolves to in the scores.
     If checkpoint_path is given, appends this bug's result to the checkpoint
     file immediately after completion so a mid-run crash loses no work.
     """
     error_file = fixtures_dir / bug_def["file"]
     error_text = error_file.read_text(encoding="utf-8").strip()
 
+    model_label = settings.pydantic_ai_model
     console.print(f"\n[cyan]Running {bug_id}:[/] {bug_def['name']}")
+    if model_override:
+        console.print(f"  [dim]Model: {model_label}[/]")
     start = time.time()
 
     try:
@@ -221,6 +227,7 @@ async def _run_bug(graph, bug_id: str, bug_def: dict, fixtures_dir: Path,
         final_state = await _invoke_with_retry(graph, initial_state)
         final_state["duration_seconds"] = time.time() - start
         scores = _score_result(bug_def, final_state)
+        scores["model"] = model_label
 
         console.print(
             f"  ✅ Completed in {scores['duration_seconds']:.1f}s — "
@@ -238,6 +245,7 @@ async def _run_bug(graph, bug_id: str, bug_def: dict, fixtures_dir: Path,
             "resolution_status": "error", "tools_called": 0,
             "duration_seconds": duration, "prevention_tickets": 0,
             "error": str(e),
+            "model": model_label,
         }
 
     # Checkpoint: persist this bug's result immediately
@@ -312,7 +320,8 @@ def _print_results_table(results: dict):
 
 
 def _persist_results(results: dict, condition: str, timestamp: str,
-                     out_dir: Path | None = None):
+                     out_dir: Path | None = None,
+                     rotation: list[str] | None = None):
     """Write results.json and results.md to eval/results/<timestamp>/."""
     if out_dir is None:
         out_dir = RESULTS_DIR / timestamp
@@ -325,6 +334,9 @@ def _persist_results(results: dict, condition: str, timestamp: str,
     total_tickets = sum(r.get("prevention_tickets", 0) for r in results.values())
     total_duration = sum(r.get("duration_seconds", 0) for r in results.values())
 
+    # Per-bug model info (populated when rotation is used)
+    per_bug_models = {k: v.get("model") for k, v in results.items() if v.get("model")}
+
     payload = {
         "metadata": {
             "timestamp": timestamp,
@@ -335,6 +347,8 @@ def _persist_results(results: dict, condition: str, timestamp: str,
             "embed_model": settings.embed_model,
             "max_investigation_loops": settings.max_investigation_loops,
             "condition": condition,
+            "model_rotation": rotation,
+            "per_bug_models": per_bug_models if per_bug_models else None,
             # Token tracking: PydanticAI per-node usage is not propagated through
             # LangGraph state in this version. Field left null; wire in if needed.
             "token_tracking": None,
@@ -403,16 +417,24 @@ def _persist_results(results: dict, condition: str, timestamp: str,
     return out_dir
 
 
-async def run_benchmark(no_memory: bool = False):
+async def run_benchmark(no_memory: bool = False, rotate_models: str = ""):
     """Run the full benchmark suite.
 
     Args:
         no_memory: If True, temporarily clear memory before Phase B so bug4
                    must be investigated from scratch (ablation condition).
+        rotate_models: Comma-separated model IDs to cycle through, one per bug.
+                       Spreads API calls across multiple free-tier quotas.
+                       Example: "gemini-3.5-flash,gemini-3.6-flash,gemini-3.1-flash-lite,..."
     """
     fixtures_dir = Path(__file__).parent / "fixtures"
     condition = "no_memory" if no_memory else "with_memory"
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+    # Build rotation list (each model gets its own free-tier quota bucket)
+    rotation: list[str] = []
+    if rotate_models:
+        rotation = [m.strip() for m in rotate_models.split(",") if m.strip()]
 
     # Create the output dir early so checkpoints land there from the first bug
     out_dir = RESULTS_DIR / timestamp
@@ -422,6 +444,8 @@ async def run_benchmark(no_memory: bool = False):
     console.print()
     console.print(f"[bold cyan]═══ ZeroOps Copilot Benchmark ═══[/] condition=[yellow]{condition}[/]")
     console.print(f"[dim]Results → {out_dir}[/]")
+    if rotation:
+        console.print(f"[dim]Model rotation: {rotation}[/]")
     console.print()
 
     # Reset memory for clean slate
@@ -431,15 +455,33 @@ async def run_benchmark(no_memory: bool = False):
     graph = build_graph()
     results = {}
 
+    # Save original model so we can restore after rotation
+    _orig_llm = settings.llm_model
+    _orig_util = settings.utility_model
+
+    def _apply_rotation(index: int) -> str | None:
+        """Temporarily switch settings to the rotation model for this bug."""
+        if not rotation:
+            return None
+        model = rotation[index % len(rotation)]
+        settings.llm_model = model
+        settings.utility_model = model
+        return model
+
+    bug_index = 0
+
     # ── Phase A: cold start (bugs 1, 2, 3, 5) ────────────────────────────────
     console.print("[bold yellow]Phase A: Cold Start[/] (empty memory)")
     console.print("─" * 50)
 
     phase_a_bugs = {k: v for k, v in BUGS.items() if v["phase"] == "A"}
     for bug_id, bug_def in phase_a_bugs.items():
+        override = _apply_rotation(bug_index)
         results[bug_id] = await _run_bug(
-            graph, bug_id, bug_def, fixtures_dir, checkpoint_path
+            graph, bug_id, bug_def, fixtures_dir, checkpoint_path,
+            model_override=override,
         )
+        bug_index += 1
 
     # ── Phase B: warm (or cleared) memory — bug4 ─────────────────────────────
     label = "Cleared Memory (ablation)" if no_memory else "Warm Memory"
@@ -454,18 +496,26 @@ async def run_benchmark(no_memory: bool = False):
     for bug_id, bug_def in BUGS.items():
         if bug_def["phase"] != "B":
             continue
+        override = _apply_rotation(bug_index)
         scores = await _run_bug(
-            graph, bug_id, bug_def, fixtures_dir, checkpoint_path
+            graph, bug_id, bug_def, fixtures_dir, checkpoint_path,
+            model_override=override,
         )
         results[bug_id] = scores
+        bug_index += 1
 
         if not no_memory:
             l0_hit = "✓ L0!" if scores.get("triage_correct") else "✗ missed L0"
             console.print(f"  → Triage: {l0_hit}")
 
+    # Restore original model settings
+    settings.llm_model = _orig_llm
+    settings.utility_model = _orig_util
+
     # ── Print and persist ─────────────────────────────────────────────────────
     _print_results_table(results)
-    _persist_results(results, condition, timestamp, out_dir)
+    _persist_results(results, condition, timestamp, out_dir,
+                     rotation=rotation or None)
     console.print(f"[bold green]Done.[/] Results saved to {out_dir}")
 
     return results
@@ -483,8 +533,20 @@ def main():
             "from scratch instead of hitting the L0 fast-path. Condition label: no_memory."
         ),
     )
+    parser.add_argument(
+        "--rotate-models",
+        default="",
+        metavar="MODEL1,MODEL2,...",
+        help=(
+            "Comma-separated model IDs to cycle through, one per bug (5 bugs total). "
+            "Spreads ~8 API calls per bug across separate free-tier quota buckets. "
+            "Example: gemini-3.5-flash,gemini-3.6-flash,gemini-3.1-flash-lite,"
+            "gemini-3.1-pro-preview,gemini-3.1-flash-lite-preview"
+        ),
+    )
     args = parser.parse_args()
-    asyncio.run(run_benchmark(no_memory=args.no_memory))
+    asyncio.run(run_benchmark(no_memory=args.no_memory,
+                              rotate_models=args.rotate_models))
 
 
 if __name__ == "__main__":
