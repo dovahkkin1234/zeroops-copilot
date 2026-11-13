@@ -38,22 +38,42 @@ from zeroops.memory.store import init_db, reset_db
 
 # ── 429 / rate-limit retry ────────────────────────────────────────────────────
 
-def _is_rate_limit(exc: BaseException) -> bool:
-    if isinstance(exc, ModelHTTPError) and exc.status_code == 429:
-        return True
+def _is_retryable(exc: BaseException) -> tuple[bool, str]:
+    """Return (should_retry, label) for transient API errors.
+
+    429 = rate limit / quota     → short backoff, base 2s
+    503 = server overloaded      → longer backoff, base 15s
+    504 = deadline exceeded      → longer backoff, base 15s
+    """
+    if isinstance(exc, ModelHTTPError):
+        if exc.status_code == 429:
+            return True, "429 rate-limit"
+        if exc.status_code in (503, 504):
+            return True, f"{exc.status_code} server unavailable"
     msg = str(exc).lower()
-    return any(k in msg for k in ("429", "rate limit", "resource exhausted", "quota"))
+    if any(k in msg for k in ("rate limit", "resource exhausted", "quota")):
+        return True, "rate-limit"
+    if any(k in msg for k in ("unavailable", "deadline exceeded", "overloaded")):
+        return True, "server unavailable"
+    return False, ""
 
 
-async def _invoke_with_retry(graph, state: dict, max_retries: int = 5) -> dict:
-    """Invoke the graph, retrying on 429 with exponential backoff (2s, 4s, 8s…)."""
+async def _invoke_with_retry(graph, state: dict, max_retries: int = 6) -> dict:
+    """Invoke the graph, retrying transient errors with exponential backoff.
+
+    429 (rate limit): 2s, 4s, 8s, 16s, 32s, 64s
+    503/504 (overload): 15s, 30s, 60s, 60s, 60s, 60s  (capped at 60s)
+    """
     for attempt in range(max_retries + 1):
         try:
             return await graph.ainvoke(state)
         except Exception as exc:
-            if attempt < max_retries and _is_rate_limit(exc):
-                delay = 2.0 * (2 ** attempt)
-                console.print(f"  [yellow]Rate limit (attempt {attempt+1}), retrying in {delay:.0f}s…[/]")
+            retryable, label = _is_retryable(exc)
+            if attempt < max_retries and retryable:
+                is_overload = isinstance(exc, ModelHTTPError) and exc.status_code in (503, 504)
+                base = 15.0 if is_overload else 2.0
+                delay = min(base * (2 ** attempt), 60.0)
+                console.print(f"  [yellow]{label} (attempt {attempt+1}/{max_retries}), retrying in {delay:.0f}s…[/]")
                 await asyncio.sleep(delay)
             else:
                 raise

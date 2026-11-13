@@ -3,24 +3,32 @@
 import pytest
 
 
-def test_default_provider_is_anthropic():
-    from zeroops.config import settings
-    assert settings.llm_provider == "anthropic"
+def test_default_provider_is_anthropic(monkeypatch):
+    """When LLM_PROVIDER is not overridden, class default is anthropic."""
+    monkeypatch.setenv("LLM_PROVIDER", "anthropic")
+    from zeroops.config import Settings
+    assert Settings().llm_provider == "anthropic"
 
 
-def test_pydantic_ai_model_has_anthropic_prefix():
-    """Regression guard: prevents the provider-mismatch bug (was openai: before fix)."""
-    from zeroops.config import settings
-    assert settings.pydantic_ai_model.startswith("anthropic:"), (
-        f"pydantic_ai_model must start with 'anthropic:'; got {settings.pydantic_ai_model!r}"
+def test_pydantic_ai_model_has_anthropic_prefix(monkeypatch):
+    """Regression guard: provider-mismatch bug (was openai: before fix)."""
+    monkeypatch.setenv("LLM_PROVIDER", "anthropic")
+    monkeypatch.setenv("LLM_MODEL", "claude-opus-4-7")
+    from zeroops.config import Settings
+    s = Settings()
+    assert s.pydantic_ai_model.startswith("anthropic:"), (
+        f"pydantic_ai_model must start with 'anthropic:'; got {s.pydantic_ai_model!r}"
     )
 
 
-def test_pydantic_ai_utility_model_has_anthropic_prefix():
-    from zeroops.config import settings
-    assert settings.pydantic_ai_utility_model.startswith("anthropic:"), (
+def test_pydantic_ai_utility_model_has_anthropic_prefix(monkeypatch):
+    monkeypatch.setenv("LLM_PROVIDER", "anthropic")
+    monkeypatch.setenv("UTILITY_MODEL", "claude-haiku-4-5-20251001")
+    from zeroops.config import Settings
+    s = Settings()
+    assert s.pydantic_ai_utility_model.startswith("anthropic:"), (
         f"pydantic_ai_utility_model must start with 'anthropic:'; "
-        f"got {settings.pydantic_ai_utility_model!r}"
+        f"got {s.pydantic_ai_utility_model!r}"
     )
 
 
