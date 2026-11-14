@@ -120,6 +120,23 @@ BUGS = {
         "expected_file": "tests/test_auth.py",
         "phase": "A",
     },
+    # Real-world bugs (not authored by the benchmark builder)
+    "bug6": {
+        "name": "pandas DataFrame.append() removed in 2.0",
+        "file": "bug6_error.txt",
+        "expected_pattern": "incomplete_symbol_rename",
+        "expected_file": "data_processor.py",
+        "phase": "A",
+        "source": "real — pandas 2.0 breaking change (Feb 2023)",
+    },
+    "bug7": {
+        "name": "collections.Mapping removed in Python 3.10",
+        "file": "bug7_error.txt",
+        "expected_pattern": "stale_import",
+        "expected_file": "validators.py",
+        "phase": "A",
+        "source": "real — Python 3.10 stdlib cleanup (Oct 2021)",
+    },
 }
 
 
@@ -283,7 +300,7 @@ def _print_results_table(results: dict):
     table.add_column("Duration", justify="right", width=9)
     table.add_column("Tickets", justify="right", width=8)
 
-    for bug_id in ["bug1", "bug2", "bug3", "bug4", "bug5"]:
+    for bug_id in BUGS:
         if bug_id not in results:
             continue
         r = results[bug_id]
@@ -383,7 +400,7 @@ def _persist_results(results: dict, condition: str, timestamp: str,
         f"|-----|------|:------:|:-------:|:----:|-----------:|------:|---------:|--------:|",
     ]
 
-    for bug_id in ["bug1", "bug2", "bug3", "bug4", "bug5"]:
+    for bug_id in BUGS:
         if bug_id not in results:
             continue
         r = results[bug_id]
@@ -418,7 +435,7 @@ def _persist_results(results: dict, condition: str, timestamp: str,
 
 
 async def run_benchmark(no_memory: bool = False, rotate_models: str = "",
-                        resume_from: str = ""):
+                        resume_from: str = "", bugs_filter: str = ""):
     """Run the full benchmark suite.
 
     Args:
@@ -432,6 +449,18 @@ async def run_benchmark(no_memory: bool = False, rotate_models: str = "",
     """
     fixtures_dir = Path(__file__).parent / "fixtures"
     condition = "no_memory" if no_memory else "with_memory"
+
+    # Bug filter — restricts which bugs run without touching BUGS dict
+    active_bugs: dict = {}
+    if bugs_filter:
+        wanted = {b.strip() for b in bugs_filter.split(",") if b.strip()}
+        active_bugs = {k: v for k, v in BUGS.items() if k in wanted}
+        if not active_bugs:
+            console.print(f"[red]No matching bugs for filter: {bugs_filter}[/]")
+            return {}
+        console.print(f"[dim]Bug filter: running only {list(active_bugs)}[/]")
+    else:
+        active_bugs = BUGS
 
     # Build rotation list (each model gets its own free-tier quota bucket)
     rotation: list[str] = []
@@ -499,7 +528,7 @@ async def run_benchmark(no_memory: bool = False, rotate_models: str = "",
     console.print("[bold yellow]Phase A: Cold Start[/] (empty memory)")
     console.print("─" * 50)
 
-    phase_a_bugs = {k: v for k, v in BUGS.items() if v["phase"] == "A"}
+    phase_a_bugs = {k: v for k, v in active_bugs.items() if v["phase"] == "A"}
     for bug_id, bug_def in phase_a_bugs.items():
         if _already_done(bug_id):
             console.print(f"\n[dim]Skipping {bug_id} (already done)[/]")
@@ -523,7 +552,7 @@ async def run_benchmark(no_memory: bool = False, rotate_models: str = "",
         reset_db()
         console.print("[dim]  Memory cleared for ablation run.[/]")
 
-    for bug_id, bug_def in BUGS.items():
+    for bug_id, bug_def in active_bugs.items():
         if bug_def["phase"] != "B":
             continue
         if _already_done(bug_id):
@@ -591,10 +620,21 @@ def main():
             "new results back into the same directory. Use after a partial run."
         ),
     )
+    parser.add_argument(
+        "--bugs",
+        default="",
+        metavar="bug1,bug6,bug7",
+        help=(
+            "Comma-separated bug IDs to run (e.g. bug6,bug7). "
+            "Runs all bugs when omitted. "
+            f"Available: {', '.join(BUGS)}"
+        ),
+    )
     args = parser.parse_args()
     asyncio.run(run_benchmark(no_memory=args.no_memory,
                               rotate_models=args.rotate_models,
-                              resume_from=args.resume_from))
+                              resume_from=args.resume_from,
+                              bugs_filter=args.bugs))
 
 
 if __name__ == "__main__":
