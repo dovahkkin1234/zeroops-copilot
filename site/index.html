@@ -318,8 +318,8 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:1.25
   </p>
 
   <div class="arch-wrap">
-    <svg viewBox="0 0 760 195" xmlns="http://www.w3.org/2000/svg"
-         aria-label="Architecture diagram: Error input flows to Triage. A dashed green arc shows the L0 fast-path directly to Reporter. For novel errors, Triage routes into the Investigator sub-graph (Planner, Tool Executor, Evaluator loop), then Hypothesizer, Verifier, Problem Manager, and finally Reporter. Memory spans the bottom, connecting to Triage and Reporter.">
+    <svg viewBox="0 0 800 272" xmlns="http://www.w3.org/2000/svg"
+         aria-label="Architecture diagram: Error input flows to Triage. A dashed green arc shows the L0 fast-path directly to Reporter. For novel errors, Triage routes into the Investigator sub-graph (Planner, Tool Executor, Evaluator loop on row 1), then down to Hypothesizer, Verifier, Problem Manager on row 2, and finally Reporter. Memory spans the bottom, connecting to Triage and Reporter.">
       <defs>
         <marker id="arr" markerWidth="7" markerHeight="7" refX="5" refY="2.5" orient="auto">
           <path d="M0,0 L0,5 L7,2.5 z" fill="#94a3b8"/>
@@ -332,154 +332,153 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:1.25
         </marker>
       </defs>
 
-      <!-- colour tokens replicated as SVG literal fallbacks -->
-      <!-- boxes: fill #fff/dark-surface, stroke border -->
-
-      <!-- ── Input ── -->
-      <rect x="4" y="62" width="68" height="32" rx="5"
+      <!-- ── Error input  (row 1, far left) ── -->
+      <rect x="5" y="52" width="70" height="32" rx="5"
             style="fill:var(--surface);stroke:var(--border);stroke-width:1.4"/>
-      <text x="38" y="78" text-anchor="middle" dominant-baseline="middle"
-            style="font-family:var(--font);font-size:10px;fill:var(--text)">Error input</text>
+      <text x="40" y="68" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:9.5px;fill:var(--text)">Error input</text>
 
-      <!-- Input → Triage -->
-      <line x1="72" y1="78" x2="99" y2="78"
+      <!-- Error → Triage -->
+      <line x1="75" y1="68" x2="103" y2="68"
             style="stroke:#94a3b8;stroke-width:1.4" marker-end="url(#arr)"/>
 
       <!-- ── Triage ── -->
-      <rect x="100" y="52" width="88" height="52" rx="5"
+      <rect x="103" y="44" width="92" height="48" rx="5"
             style="fill:var(--surface);stroke:var(--border);stroke-width:1.4"/>
-      <text x="144" y="71" text-anchor="middle" dominant-baseline="middle"
+      <text x="149" y="63" text-anchor="middle" dominant-baseline="middle"
             style="font-family:var(--font);font-size:10.5px;font-weight:700;fill:var(--text)">Triage</text>
-      <text x="144" y="84" text-anchor="middle" dominant-baseline="middle"
-            style="font-family:var(--font);font-size:8.5px;fill:var(--text2)">similarity search</text>
-      <text x="144" y="96" text-anchor="middle" dominant-baseline="middle"
-            style="font-family:var(--font);font-size:8.5px;fill:var(--text2)">+ LLM classify</text>
+      <text x="149" y="77" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:8.5px;fill:var(--text2)">similarity + LLM</text>
 
-      <!-- L0 fast-path arc: Triage → Reporter (green dashed) -->
-      <path d="M188,65 Q380,12 618,65" fill="none"
+      <!-- L0 fast-path arc: Triage top-right → Reporter top-left (green dashed) -->
+      <path d="M195,52 Q410,6 622,66" fill="none"
             style="stroke:#059669;stroke-width:1.4;stroke-dasharray:5 3"
             marker-end="url(#arr-g)"/>
-      <text x="380" y="22" text-anchor="middle"
-            style="font-family:var(--font);font-size:8.5px;fill:#059669">≥ 0.85 similarity + same error type → L0 fast-path</text>
+      <text x="406" y="14" text-anchor="middle"
+            style="font-family:var(--font);font-size:7.5px;fill:#059669">≥ 0.85 similarity + same error type → L0 fast-path</text>
 
       <!-- Triage → Investigator (novel) -->
-      <line x1="188" y1="78" x2="209" y2="78"
+      <line x1="195" y1="68" x2="220" y2="68"
             style="stroke:#94a3b8;stroke-width:1.4" marker-end="url(#arr)"/>
-      <text x="198" y="72" text-anchor="middle"
-            style="font-family:var(--font);font-size:7.5px;fill:var(--text3)">novel</text>
+      <text x="207" y="61" text-anchor="middle"
+            style="font-family:var(--font);font-size:7px;fill:var(--text3)">novel</text>
 
-      <!-- ── Investigator sub-graph ── -->
-      <rect x="210" y="44" width="302" height="68" rx="6"
+      <!-- ── Investigator dashed sub-box (row 1) ── -->
+      <rect x="220" y="36" width="272" height="64" rx="6"
             style="fill:var(--bg2);stroke:var(--border);stroke-width:1;stroke-dasharray:5 3"/>
-      <text x="220" y="56" dominant-baseline="middle"
+      <text x="228" y="47" dominant-baseline="middle"
             style="font-family:var(--font);font-size:8px;font-style:italic;fill:var(--text3)">Investigator</text>
 
       <!-- Planner -->
-      <rect x="218" y="62" width="66" height="30" rx="5"
+      <rect x="228" y="52" width="68" height="32" rx="5"
             style="fill:var(--surface);stroke:var(--border);stroke-width:1.3"/>
-      <text x="251" y="77" text-anchor="middle" dominant-baseline="middle"
+      <text x="262" y="68" text-anchor="middle" dominant-baseline="middle"
             style="font-family:var(--font);font-size:9.5px;fill:var(--text)">Planner</text>
 
       <!-- Planner → Tool Executor -->
-      <line x1="284" y1="77" x2="300" y2="77"
+      <line x1="296" y1="68" x2="314" y2="68"
             style="stroke:#94a3b8;stroke-width:1.3" marker-end="url(#arr)"/>
 
       <!-- Tool Executor -->
-      <rect x="301" y="62" width="66" height="30" rx="5"
+      <rect x="314" y="52" width="74" height="32" rx="5"
             style="fill:var(--surface);stroke:var(--border);stroke-width:1.3"/>
-      <text x="334" y="72" text-anchor="middle" dominant-baseline="middle"
+      <text x="351" y="62" text-anchor="middle" dominant-baseline="middle"
             style="font-family:var(--font);font-size:9.5px;fill:var(--text)">Tool</text>
-      <text x="334" y="83" text-anchor="middle" dominant-baseline="middle"
+      <text x="351" y="74" text-anchor="middle" dominant-baseline="middle"
             style="font-family:var(--font);font-size:9.5px;fill:var(--text)">Executor</text>
 
       <!-- Tool Executor → Evaluator -->
-      <line x1="367" y1="77" x2="383" y2="77"
+      <line x1="388" y1="68" x2="406" y2="68"
             style="stroke:#94a3b8;stroke-width:1.3" marker-end="url(#arr)"/>
 
-      <!-- Evaluator -->
-      <rect x="384" y="55" width="118" height="46" rx="5"
+      <!-- Evaluator (highlighted — the agentic heart) -->
+      <rect x="406" y="44" width="78" height="48" rx="5"
             style="fill:var(--surface);stroke:var(--primary);stroke-width:1.5"/>
-      <text x="443" y="71" text-anchor="middle" dominant-baseline="middle"
+      <text x="445" y="62" text-anchor="middle" dominant-baseline="middle"
             style="font-family:var(--font);font-size:9.5px;font-weight:700;fill:var(--text)">Evaluator</text>
-      <text x="443" y="83" text-anchor="middle" dominant-baseline="middle"
-            style="font-family:var(--font);font-size:8px;fill:var(--text2)">continue / hypothesize</text>
-      <text x="443" y="93" text-anchor="middle" dominant-baseline="middle"
+      <text x="445" y="74" text-anchor="middle" dominant-baseline="middle"
+            style="font-family:var(--font);font-size:8px;fill:var(--text2)">continue / hyp.</text>
+      <text x="445" y="84" text-anchor="middle" dominant-baseline="middle"
             style="font-family:var(--font);font-size:8px;fill:var(--text2)">/ give_up ✓</text>
 
-      <!-- Loop back arc: Evaluator → Planner (continue) -->
-      <path d="M443,101 Q340,130 251,92" fill="none"
+      <!-- Continue arc: bottom of Evaluator → right edge of Planner (loop back) -->
+      <path d="M445,92 Q364,116 296,68" fill="none"
             style="stroke:#94a3b8;stroke-width:1.2;stroke-dasharray:4 3"
             marker-end="url(#arr)"/>
-      <text x="348" y="130" text-anchor="middle"
-            style="font-family:var(--font);font-size:8px;fill:var(--text3)">continue (up to 8×)</text>
+      <text x="382" y="112" text-anchor="middle"
+            style="font-family:var(--font);font-size:7.5px;fill:var(--text3)">continue (up to 8×)</text>
 
-      <!-- Evaluator → Hypothesizer (hypothesize) -->
-      <line x1="502" y1="77" x2="518" y2="77"
-            style="stroke:#94a3b8;stroke-width:1.3" marker-end="url(#arr)"/>
+      <!-- give_up: Evaluator right → Reporter (dashed) -->
+      <path d="M484,68 Q553,30 622,68" fill="none"
+            style="stroke:#94a3b8;stroke-width:1.2;stroke-dasharray:3 3"
+            marker-end="url(#arr)"/>
+      <text x="554" y="26" text-anchor="middle"
+            style="font-family:var(--font);font-size:7.5px;fill:var(--text3)">give_up</text>
 
-      <!-- ── Hypothesizer ── -->
-      <rect x="519" y="62" width="78" height="30" rx="5"
+      <!-- Hypothesize: Evaluator bottom-left → down → left → Hypothesizer top (row 2) -->
+      <path d="M415,92 L415,134 L272,134 L272,154" fill="none"
+            style="stroke:#94a3b8;stroke-width:1.2"
+            marker-end="url(#arr)"/>
+      <text x="344" y="130" text-anchor="middle"
+            style="font-family:var(--font);font-size:7.5px;fill:var(--text3)">hypothesize</text>
+
+      <!-- ── Row 2: Hypothesizer ── -->
+      <rect x="228" y="154" width="88" height="32" rx="5"
             style="fill:var(--surface);stroke:var(--border);stroke-width:1.3"/>
-      <text x="558" y="77" text-anchor="middle" dominant-baseline="middle"
+      <text x="272" y="170" text-anchor="middle" dominant-baseline="middle"
             style="font-family:var(--font);font-size:9px;fill:var(--text)">Hypothesizer</text>
 
       <!-- Hypothesizer → Verifier -->
-      <line x1="597" y1="77" x2="612" y2="77"
+      <line x1="316" y1="170" x2="334" y2="170"
             style="stroke:#94a3b8;stroke-width:1.3" marker-end="url(#arr)"/>
 
       <!-- ── Verifier ── -->
-      <rect x="613" y="62" width="68" height="30" rx="5"
+      <rect x="334" y="154" width="68" height="32" rx="5"
             style="fill:var(--surface);stroke:var(--border);stroke-width:1.3"/>
-      <text x="647" y="77" text-anchor="middle" dominant-baseline="middle"
+      <text x="368" y="170" text-anchor="middle" dominant-baseline="middle"
             style="font-family:var(--font);font-size:9px;fill:var(--text)">Verifier</text>
 
-      <!-- Verifier → Problem Manager (down then right) -->
-      <path d="M647,92 L647,115 L590,115" fill="none"
+      <!-- Verifier → Problem Manager -->
+      <line x1="402" y1="170" x2="420" y2="170"
             style="stroke:#94a3b8;stroke-width:1.3" marker-end="url(#arr)"/>
 
       <!-- ── Problem Manager ── -->
-      <rect x="490" y="104" width="98" height="30" rx="5"
+      <rect x="420" y="154" width="104" height="32" rx="5"
             style="fill:var(--surface);stroke:var(--border);stroke-width:1.3"/>
-      <text x="539" y="119" text-anchor="middle" dominant-baseline="middle"
+      <text x="472" y="170" text-anchor="middle" dominant-baseline="middle"
             style="font-family:var(--font);font-size:9px;fill:var(--text)">Problem Manager</text>
 
-      <!-- Problem Manager → Reporter -->
-      <path d="M490,119 L440,119 L440,100 Q440,78 618,78" fill="none"
-            style="stroke:#94a3b8;stroke-width:1.3" marker-end="url(#arr)"/>
-
-      <!-- give_up path: Evaluator → Reporter (dashed) -->
-      <path d="M502,65 Q570,30 618,70" fill="none"
-            style="stroke:#94a3b8;stroke-width:1.2;stroke-dasharray:3 3"
+      <!-- Problem Manager → Reporter (right then up into Reporter bottom) -->
+      <path d="M524,170 L622,170 L622,144" fill="none"
+            style="stroke:#94a3b8;stroke-width:1.3"
             marker-end="url(#arr)"/>
-      <text x="556" y="38" text-anchor="middle"
-            style="font-family:var(--font);font-size:7.5px;fill:var(--text3)">give_up</text>
 
-      <!-- ── Reporter ── -->
-      <rect x="619" y="52" width="84" height="52" rx="5"
+      <!-- ── Reporter (right side, tall, spans both rows) ── -->
+      <rect x="622" y="44" width="96" height="100" rx="5"
             style="fill:var(--surface);stroke:var(--border);stroke-width:1.4"/>
-      <text x="661" y="72" text-anchor="middle" dominant-baseline="middle"
+      <text x="670" y="80" text-anchor="middle" dominant-baseline="middle"
             style="font-family:var(--font);font-size:10.5px;font-weight:700;fill:var(--text)">Reporter</text>
-      <text x="661" y="84" text-anchor="middle" dominant-baseline="middle"
+      <text x="670" y="96" text-anchor="middle" dominant-baseline="middle"
             style="font-family:var(--font);font-size:8.5px;fill:var(--text2)">Postmortem</text>
-      <text x="661" y="96" text-anchor="middle" dominant-baseline="middle"
+      <text x="670" y="110" text-anchor="middle" dominant-baseline="middle"
             style="font-family:var(--font);font-size:8.5px;fill:var(--text2)">+ Markdown</text>
 
       <!-- ── Memory bar ── -->
-      <rect x="100" y="156" width="603" height="28" rx="5"
+      <rect x="103" y="220" width="615" height="26" rx="5"
             style="fill:var(--primary-bg);stroke:var(--primary);stroke-width:1.3"/>
-      <text x="401" y="170" text-anchor="middle" dominant-baseline="middle"
+      <text x="410" y="233" text-anchor="middle" dominant-baseline="middle"
             style="font-family:var(--font);font-size:9.5px;font-weight:600;fill:var(--primary)">Memory — SQLite + all-MiniLM-L6-v2 embeddings</text>
-      <text x="265" y="182" text-anchor="middle"
+      <text x="262" y="254" text-anchor="middle"
             style="font-family:var(--font);font-size:7.5px;fill:var(--text3)">read (similarity search)</text>
-      <text x="590" y="182" text-anchor="middle"
+      <text x="558" y="254" text-anchor="middle"
             style="font-family:var(--font);font-size:7.5px;fill:var(--text3)">write on resolve</text>
 
       <!-- Memory ↑ Triage -->
-      <line x1="144" y1="156" x2="144" y2="104"
+      <line x1="149" y1="220" x2="149" y2="92"
             style="stroke:var(--primary);stroke-width:1;stroke-dasharray:3 2"
             marker-end="url(#arr-p)"/>
       <!-- Memory ↑ Reporter -->
-      <line x1="661" y1="156" x2="661" y2="104"
+      <line x1="670" y1="220" x2="670" y2="144"
             style="stroke:var(--primary);stroke-width:1;stroke-dasharray:3 2"
             marker-end="url(#arr-p)"/>
 
