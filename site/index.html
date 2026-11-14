@@ -516,29 +516,42 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:1.25
 <section id="evaluation">
   <h2>Evaluation</h2>
 
-  <div class="eval-honest">
-    No benchmark has been run against the full agent. This page makes no performance claims.
-  </div>
-
   <p style="font-size:.9rem;color:var(--text2);max-width:680px">
-    The benchmark is designed but not yet run. It uses <code>eval/benchmark.py</code> and five
-    seeded bugs in <code>demo_repo/</code>, running in two phases:
+    One benchmark run is committed to <code>eval/results/20261113T113725Z/</code>.
+    Results are from a single-condition run on the Google Gemini API (free tier);
+    each of the 5 bugs ran on a separate Flash/Flash-Lite model due to the 20 req/day
+    per-model cap — not a clean single-model measurement.
   </p>
 
-  <ul style="margin:.75rem 0 .75rem 1.25rem;font-size:.9rem;color:var(--text2)">
-    <li><strong>Phase A — cold start:</strong> bugs 1, 2, 3, 5 against empty memory.
-        Resolved incidents are persisted to SQLite after each run.</li>
-    <li><strong>Phase B — warm memory:</strong> bug 4 (a deliberate variant of bug 1's
-        <code>incomplete_symbol_rename</code> pattern) against the now-populated memory.
-        A correct system routes it to the L0 path without re-investigating.</li>
-  </ul>
+  <table style="font-size:.85rem;border-collapse:collapse;margin:.75rem 0;max-width:680px">
+    <thead>
+      <tr style="border-bottom:1px solid var(--border)">
+        <th style="text-align:left;padding:.35rem .75rem .35rem 0">Metric</th>
+        <th style="text-align:left;padding:.35rem 0">Result</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">Pattern accuracy</td><td>4 / 5</td></tr>
+      <tr><td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">File localization</td><td>2 / 5</td></tr>
+      <tr><td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">Avg confidence (self-reported)</td><td>86%</td></tr>
+      <tr><td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">L0 routing (bug 4)</td><td>miss — bug 1 confidence 30%, below 0.5 save threshold</td></tr>
+      <tr><td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">Prevention tickets</td><td>5 total (1.0 per bug)</td></tr>
+      <tr><td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">Total duration</td><td>643.5 s (~10.7 min, 5 bugs)</td></tr>
+    </tbody>
+  </table>
 
-  <p style="font-size:.9rem;color:var(--text2);max-width:680px">
-    Eight metrics per bug: triage accuracy, investigator pattern accuracy, investigator
-    root-cause accuracy, Problem Manager coverage, tickets prevented, resolution status,
-    tools called, and wall-clock duration. When results are run and committed to
-    <code>eval/results/</code>, they will be linked here with provider, model, and backend
-    metadata. Until then this section describes design only.
+  <p style="font-size:.85rem;color:var(--text2);max-width:680px">
+    <strong>Caveats:</strong> n = 5, synthetic bugs authored by the builder; different
+    model per bug; confidence is model self-reported. The L0 miss is correct save-contract
+    behaviour (confidence below the 0.5 write threshold), not a routing bug. Full metadata
+    in <code>eval/results/20261113T113725Z/results.json</code>.
+  </p>
+
+  <p style="font-size:.85rem;color:var(--text2);max-width:680px;margin-top:.5rem">
+    Two additional fixture bugs from real Python ecosystem breaking changes
+    (<code>pandas</code> 2.0 and Python 3.10 stdlib) are in <code>eval/fixtures/</code>
+    but have not been run against the agent — Gemini free-tier quota was exhausted before
+    those runs could complete.
   </p>
 </section>
 
@@ -550,8 +563,9 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:1.25
     <li>Memory is flat embedding retrieval, not a knowledge graph — no cross-incident
         relationship modeling, no entity resolution, no GraphRAG.</li>
     <li>No personalization or user modeling — every query is treated identically.</li>
-    <li>Benchmark is small (n = 5 bugs), synthetic, and authored by the same person who built
-        the agent — confidence calibration is self-reported, not externally validated.</li>
+    <li>Benchmark is small (n = 5 bugs with results, 7 fixtures total), synthetic, and authored
+        by the same person who built the agent — confidence calibration is self-reported,
+        not externally validated.</li>
     <li>This page demonstrates memory retrieval and the save contract in-browser.
         It does <strong>not</strong> run the LLM agent loop — that requires a model backend
         not available in a static page.</li>
