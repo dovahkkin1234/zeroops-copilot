@@ -243,7 +243,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:1.25
     <div id="triage-verdict"></div>
     <div class="note">
       Similarity computed in-browser with <strong>all-MiniLM-L6-v2</strong> (ONNX,
-      <code>@huggingface/transformers@4.3.2</code>).
+      <code>@xenova/transformers@2.17.2</code>).
       The triage rule (≥ 0.85 + same error type → L0; 0.70–0.85 → novel with hint; else → novel)
       is applied deterministically here, as a faithful illustration of the rule the LLM applies
       in the full system.
@@ -609,7 +609,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:1.25
 <script type="module">
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CDN = 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2/dist/transformers.web.min.js';
+const CDN = 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2/dist/transformers.min.js';
 
 const FIXTURES = [
   {
