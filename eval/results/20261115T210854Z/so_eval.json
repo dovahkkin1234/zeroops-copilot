@@ -1,0 +1,26 @@
+{
+  "timestamp": "20261115T210854Z",
+  "experiment": "so_duplicate_retrieval",
+  "source": "Stack Overflow (CC BY-SA 4.0)",
+  "embed_model": "all-MiniLM-L6-v2",
+  "n_pairs": 124,
+  "results": [
+    {
+      "condition": "raw",
+      "n_pairs": 124,
+      "n_originals_in_index": 83,
+      "recall@1": 0.6855,
+      "recall@3": 0.9113,
+      "mrr": 0.8033
+    },
+    {
+      "condition": "normalized",
+      "n_pairs": 124,
+      "n_originals_in_index": 83,
+      "recall@1": 0.6774,
+      "recall@3": 0.9113,
+      "mrr": 0.7993
+    }
+  ],
+  "notes": "Ground truth: SO's own duplicate-close mechanism. Query = duplicate question text; relevant = its linked original. 'normalized' condition applies normalize_error_signature() from src/zeroops/memory/embeddings.py before embedding."
+}

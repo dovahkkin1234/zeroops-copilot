@@ -65,6 +65,9 @@ def _so_get(url: str, params: dict, api_key: str = "") -> dict:
             print("[rate-limit] sleeping 15s …", flush=True)
             time.sleep(15)
             continue
+        if resp.status_code in (400, 404):
+            # SO returns 400 when paging beyond available results
+            return {"items": [], "has_more": False}
         resp.raise_for_status()
         data = resp.json()
         backoff = data.get("backoff", 0)
@@ -84,7 +87,7 @@ def get_so_filter(api_key: str = "") -> str:
     cache = CACHE_DIR / "filter.txt"
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
     if cache.exists():
-        return cache.read_text().strip()
+        return cache.read_text(encoding="utf-8").strip()
 
     try:
         data = _so_get(
@@ -95,7 +98,7 @@ def get_so_filter(api_key: str = "") -> str:
             },
         )
         flt = data["items"][0]["filter"]
-        cache.write_text(flt)
+        cache.write_text(flt, encoding="utf-8")
         print(f"[filter] created SO filter: {flt}")
         return flt
     except Exception as exc:
@@ -119,9 +122,14 @@ def fetch_pairs(n: int, api_key: str = "", dry_run: bool = False) -> list[dict]:
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
     if cache.exists():
-        pairs = json.loads(cache.read_text())
-        print(f"[cache] loaded {len(pairs)} pairs from {cache.name}")
-        return pairs
+        try:
+            pairs = json.loads(cache.read_text(encoding="utf-8"))
+            if pairs:
+                print(f"[cache] loaded {len(pairs)} pairs from {cache.name}")
+                return pairs
+        except (json.JSONDecodeError, ValueError):
+            pass
+        cache.unlink()  # delete empty / corrupt cache; re-fetch
 
     if dry_run:
         print("[dry-run] no cache found and --dry-run is set; nothing to evaluate")
@@ -177,7 +185,7 @@ def fetch_pairs(n: int, api_key: str = "", dry_run: bool = False) -> list[dict]:
               f"found_this_page={found_this_page:>3}  total={len(raw):>4}",
               flush=True)
 
-        if len(raw) >= n or not data.get("has_more"):
+        if len(raw) >= n - 5 or not data.get("has_more"):
             break
 
         time.sleep(0.4)
@@ -223,7 +231,7 @@ def fetch_pairs(n: int, api_key: str = "", dry_run: bool = False) -> list[dict]:
             "orig_text":  orig["title"] + "\n" + orig["body"],
         })
 
-    cache.write_text(json.dumps(pairs, ensure_ascii=False, indent=2))
+    cache.write_text(json.dumps(pairs, ensure_ascii=False, indent=2), encoding="utf-8")
     print(f"[fetch] cached {len(pairs)} usable pairs → {cache}")
     return pairs
 
@@ -349,7 +357,7 @@ def main() -> None:
     print("═" * w + "\n")
 
     # ── save results ──────────────────────────────────────────────────────────
-    ts  = datetime.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+    ts  = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     out = OUT_DIR / ts
     out.mkdir(parents=True, exist_ok=True)
 
@@ -368,7 +376,7 @@ def main() -> None:
         ),
     }
     out_path = out / "so_eval.json"
-    out_path.write_text(json.dumps(result_obj, indent=2))
+    out_path.write_text(json.dumps(result_obj, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"[saved] {out_path}")
 
 
