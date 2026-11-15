@@ -136,6 +136,36 @@ model (see `docs/RUNBOOK.md` for Ollama instructions).
 - The benchmark does not cover distributed traces, async/timing bugs,
   or any pattern outside the five seeded cases
 
+### Memory retrieval — Stack Overflow duplicate pairs
+
+The episodic memory system (cosine similarity over `all-MiniLM-L6-v2`
+embeddings) was evaluated separately on an external ground truth: Stack
+Overflow's own duplicate-close mechanism. Results from run
+`20261115T210854Z` (committed to `eval/results/`):
+
+| Condition | Recall@1 | Recall@3 | MRR |
+|---|---|---|---|
+| Raw text | 0.685 | 0.911 | 0.803 |
+| Normalised error signature | 0.677 | 0.911 | 0.799 |
+
+n=124 Python duplicate pairs; 83 unique originals in index. Data source:
+Stack Overflow (CC BY-SA 4.0). Run: `uv run python -m eval.so_eval`.
+
+R@3=0.911 means the memory system retrieves the correct original in the
+top-3 for 91.1% of real community-sourced duplicate questions using only
+local 384-dim embeddings with no fine-tuning. The normalisation Δ is
+near zero on human-written SO questions (which rarely contain raw file
+paths or line numbers); the normalisation is designed for raw stack
+traces from production logs, where volatile numbers create noise.
+
+**Limitations of this sub-evaluation:**
+
+- 124/298 duplicate pairs were usable; the remaining 174 originals were
+  deleted or inaccessible on the SO API — see `eval/results/20261115T210854Z/so_eval.json`
+- SO question texts are human-paraphrased, not raw stack traces; the
+  retrieval task differs from production incident replay
+- No fine-tuning; a domain-adapted model would likely score higher
+
 ## Ticket taxonomy reference
 
 For reviewers unfamiliar with AMS vocabulary:

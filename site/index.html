@@ -552,6 +552,50 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:1.25
     but have not been run against the agent — Gemini free-tier quota was exhausted before
     those runs could complete.
   </p>
+
+  <h3 style="margin-top:1.5rem">Memory retrieval — Stack Overflow duplicate pairs</h3>
+  <p style="font-size:.9rem;color:var(--text2);max-width:680px">
+    The episodic memory system (cosine similarity over <code>all-MiniLM-L6-v2</code>
+    embeddings) was evaluated on an external ground truth: Stack Overflow's own duplicate-close
+    mechanism. 124 Python duplicate pairs; 83 unique originals in index.
+    Source: Stack Overflow (CC BY-SA 4.0). Run: <code>eval/results/20261115T210854Z/so_eval.json</code>.
+  </p>
+
+  <table style="font-size:.85rem;border-collapse:collapse;margin:.75rem 0;max-width:680px">
+    <thead>
+      <tr style="border-bottom:1px solid var(--border)">
+        <th style="text-align:left;padding:.35rem .75rem .35rem 0">Condition</th>
+        <th style="text-align:center;padding:.35rem .5rem">Recall@1</th>
+        <th style="text-align:center;padding:.35rem .5rem">Recall@3</th>
+        <th style="text-align:center;padding:.35rem 0">MRR</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">Raw text</td>
+        <td style="text-align:center;padding:.3rem .5rem">0.685</td>
+        <td style="text-align:center;padding:.3rem .5rem">0.911</td>
+        <td style="text-align:center;padding:.3rem 0">0.803</td>
+      </tr>
+      <tr>
+        <td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">Normalised error signature</td>
+        <td style="text-align:center;padding:.3rem .5rem">0.677</td>
+        <td style="text-align:center;padding:.3rem .5rem">0.911</td>
+        <td style="text-align:center;padding:.3rem 0">0.799</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p style="font-size:.85rem;color:var(--text2);max-width:680px">
+    R@3 = 0.911: the correct original question is retrieved in the top-3 for 91.1% of
+    real duplicate pairs using only local 384-dim embeddings with no fine-tuning.
+    Normalisation Δ ≈ 0 on human-written SO questions (which rarely contain raw file paths or
+    line numbers); the normalisation is designed for raw stack traces from production logs.
+    <br><br>
+    <strong>Caveats:</strong> 124 of 298 fetched pairs were usable (174 originals deleted or
+    inaccessible on the SO API). SO texts are human-paraphrased, not raw stack traces — the
+    retrieval task differs from production incident replay. No fine-tuning applied.
+  </p>
 </section>
 
 <!-- ───────────────────────── LIMITATIONS ───────────────────────── -->
