@@ -29,6 +29,7 @@ Thumbs.db
 incidents.db
 *.db-journal
 eval/so_data/
+eval/bugsinpy_data/
 
 # Node (frontend stretch)
 web/node_modules/

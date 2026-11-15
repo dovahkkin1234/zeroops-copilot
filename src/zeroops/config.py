@@ -25,13 +25,19 @@ class Settings(BaseSettings):
     def pydantic_ai_model(self) -> str:
         """Return PydanticAI model string with provider prefix.
 
-        Supports 'anthropic:model-id' and 'ollama:model-id'.
+        Ollama uses PydanticAI's OpenAI-compatible backend: the model string
+        is 'openai:<model>' and OPENAI_BASE_URL / OPENAI_API_KEY are set
+        below so the client resolves to the local Ollama endpoint.
         """
+        if self.llm_provider == "ollama":
+            return f"openai:{self.llm_model}"
         return f"{self.llm_provider}:{self.llm_model}"
 
     @property
     def pydantic_ai_utility_model(self) -> str:
         """Utility model (cheaper, non-reasoning tasks)."""
+        if self.llm_provider == "ollama":
+            return f"openai:{self.utility_model}"
         return f"{self.llm_provider}:{self.utility_model}"
 
 
@@ -42,9 +48,13 @@ settings = Settings()
 if settings.anthropic_api_key and not os.environ.get("ANTHROPIC_API_KEY"):
     os.environ["ANTHROPIC_API_KEY"] = settings.anthropic_api_key
 
-if settings.llm_provider == "ollama" and settings.ollama_base_url:
-    if not os.environ.get("OLLAMA_BASE_URL"):
-        os.environ["OLLAMA_BASE_URL"] = settings.ollama_base_url
+if settings.llm_provider == "ollama":
+    # PydanticAI's 'openai:' provider reads these two env vars to route
+    # to the Ollama endpoint instead of api.openai.com.
+    if not os.environ.get("OPENAI_BASE_URL"):
+        os.environ["OPENAI_BASE_URL"] = settings.ollama_base_url
+    if not os.environ.get("OPENAI_API_KEY"):
+        os.environ["OPENAI_API_KEY"] = "ollama"
 
 if settings.google_api_key and not os.environ.get("GOOGLE_API_KEY"):
     os.environ["GOOGLE_API_KEY"] = settings.google_api_key

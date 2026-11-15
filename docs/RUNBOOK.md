@@ -1,172 +1,213 @@
-# Runbook — running the benchmark for free with Ollama
+# ZeroOps Copilot — Evaluation Runbook
 
-This guide lets you reproduce the benchmark on your own machine without
-spending Anthropic API credit. It requires a GPU (or fast CPU — slower
-but functional).
+This is the step-by-step guide for running the benchmark on the Windows host
+(the machine with the GPU and local Ollama). Claude Code never executes these;
+the owner runs them in PowerShell.
 
 ---
 
-## 1. Install Ollama
+## 0. Prerequisites
 
-**Windows / macOS:** download the installer from <https://ollama.com/download>
-and run it. Ollama installs as a background service.
+Assumed already installed:
+- Python 3.11+ with `uv` (`pip install uv`)
+- Git
 
-**Linux:**
-```bash
-curl -fsSL https://ollama.com/install.sh | sh
+Check:
+```powershell
+python --version   # must be 3.11+
+uv --version
+git --version
 ```
 
-Verify it is running:
-```bash
+Install project dependencies (once):
+```powershell
+cd C:\Users\shiri\Projects\zeroops-copilot
+uv sync
+```
+
+---
+
+## 1. Ollama setup
+
+### 1a. Install Ollama
+Download from https://ollama.com/download (Windows installer).
+After install, verify:
+```powershell
 ollama --version
 ```
 
----
+### 1b. Pull a tool-calling model
 
-## 2. Pull a tool-calling-capable model
-
-The agent uses structured outputs (PydanticAI validation). The model
-must support tool calls. Recommended options (smallest first):
-
-| Model | Size | Tool calls |
-|---|---|---|
-| `qwen2.5:7b` | ~4.7 GB | Yes |
-| `llama3.1:8b` | ~4.9 GB | Yes |
-| `mistral:7b` | ~4.1 GB | Partial — may need retries |
-
-Pull your chosen model (example with `qwen2.5:7b`):
-```bash
+**Recommended:** `qwen2.5:7b` — good structured-output reliability, 4.7 GB.
+```powershell
 ollama pull qwen2.5:7b
 ```
 
-Verify it loads:
-```bash
-ollama run qwen2.5:7b "Reply with one word: hello"
+**Alternative if 7B is too slow:** `qwen2.5:3b` (~2 GB, faster but less reliable):
+```powershell
+ollama pull qwen2.5:3b
 ```
 
----
+**Verify Ollama is running and the model responds:**
+```powershell
+ollama run qwen2.5:7b "Return JSON: {\"ok\": true}"
+```
+Expected: some JSON response.
 
-## 3. Configure `.env`
+### 1c. Configure `.env`
 
-Edit `.env` (copy from `.env.example` if it does not exist):
-
-```env
+Edit `.env` (copy from `.env.example` if it doesn't exist):
+```
 LLM_PROVIDER=ollama
 LLM_MODEL=qwen2.5:7b
 UTILITY_MODEL=qwen2.5:7b
 OLLAMA_BASE_URL=http://localhost:11434/v1
+EMBED_MODEL=all-MiniLM-L6-v2
+DB_PATH=./incidents.db
+REPO_PATH=./demo_repo
+MAX_INVESTIGATION_LOOPS=8
+REPRO_EXECUTION_ENABLED=false
+# ANTHROPIC_API_KEY=  # leave commented out to avoid API billing
 ```
 
-Leave `ANTHROPIC_API_KEY` blank or omit it — it is not used when
-`LLM_PROVIDER=ollama`.
+> **Important:** Do NOT set `ANTHROPIC_API_KEY` while running Ollama. Claude Code
+> prefers an API key over the subscription login and would bill your API account.
 
 ---
 
-## 4. Smoke-test the agent on one bug
+## 2. Smoke test — one bug end-to-end
 
-Before running the full benchmark, verify structured output works with
-the chosen model:
-
-```bash
+Before running the full benchmark:
+```powershell
 uv run python -m zeroops.runner --error-file eval/fixtures/bug1_error.txt
 ```
 
-**What to look for:**
-- Each node panel renders (Triage, Planner, Tool Executor, Evaluator, …)
-- A Postmortem renders at the end
-- No `ValidationError` after every tool call
-
-**If validation fails frequently:** smaller models struggle with strict
-JSON. Try `llama3.1:8b` instead, or add `--max-retries 2` (the agent
-already retries once automatically). Record failure counts in the results.
+Expected: a postmortem renders with `hypothesis.pattern = incomplete_symbol_rename`.
+If you see `model not found`, verify `LLM_MODEL` in `.env` matches the pulled model name.
 
 ---
 
-## 5. Run the benchmark (Phase A + Phase B)
+## 3. Main benchmark (5 seeded bugs)
 
-```bash
+### 3a. With-memory run (default)
+```powershell
 uv run python -m eval.benchmark
 ```
 
-**Expected run time:** 15–45 minutes depending on GPU and model size.
+Runs Phase A (bugs 1, 2, 3, 5 against empty memory) then Phase B (bug4 — should
+hit the L0 fast-path if bug1 was resolved and saved). Takes ~30-60 min with a 7B model.
 
-The benchmark runs two phases automatically:
-- **Phase A** — bugs 1, 2, 3, 5 against empty memory; each resolved
-  incident is persisted to SQLite
-- **Phase B** — bug 4 against the now-populated memory; a correct system
-  routes it to L0 (no re-investigation)
+Results saved to `eval/results/<timestamp>/results.json` and `results.md`.
 
-Results are written to `eval/results/<UTC-timestamp>/`:
-- `results.json` — per-bug metrics + run metadata (provider, model, git hash, timestamp)
-- `results.md` — the same table in Markdown
-
----
-
-## 6. Run the ablation (--no-memory flag, Task T4)
-
-The ablation disables the memory lookup for bug 4, forcing investigation
-even though bug 1's pattern is already in memory. Compare the two runs
-to quantify the value of episodic memory.
-
-```bash
-# Default (with memory)
-uv run python -m eval.benchmark
-
-# Ablation (without memory)
+### 3b. Ablation — no-memory run
+```powershell
 uv run python -m eval.benchmark --no-memory
 ```
 
-Both runs write separate results files. The `condition` field in
-`results.json` will be `"with_memory"` or `"no_memory"`.
+Clears memory before Phase B so bug4 must be investigated from scratch.
+Compare against 3a: more tools called, longer duration, L0 path not taken.
 
-**Recommended:** run each condition 3 times and report the spread, since
-local models are non-deterministic. With n = 5 bugs, report counts like
-"4/5 correct" with the sample size stated, never bare percentages.
+### 3c. Run 3 times each for spread
+Run 3a and 3b at least 3 times each with the same model. Record the timestamp
+for each run. Report as "X/5 (n=3)" not bare percentages.
 
 ---
 
-## 7. Comparing Anthropic vs Ollama
+## 4. BugsInPy evaluation (real-world bugs)
 
-If you have Anthropic API access (trial credit or subscription), run the
-benchmark again with `LLM_PROVIDER=anthropic` and the model of your
-choice. The results file includes the provider and model name, so you
-can directly compare rows in the results table.
-
-```env
-LLM_PROVIDER=anthropic
-LLM_MODEL=claude-sonnet-5-5
-UTILITY_MODEL=claude-haiku-5-5
-ANTHROPIC_API_KEY=sk-ant-...
+### 4a. Download metadata (no LLM, no git clones)
+```powershell
+uv run python -m eval.bugsinpy_eval --setup
 ```
 
+Downloads bug.info files for `tqdm`, `luigi`, `black`, `httpie`, `thefuck` from
+the BugsInPy GitHub repository. Saves to `eval/bugsinpy_data/metadata.json`.
+Takes ~2 min; uses ~50 GitHub API calls (unauthenticated limit: 60/h).
+
+If you hit the rate limit, set a free GitHub personal access token:
+```powershell
+$env:GITHUB_TOKEN = "ghp_your_token_here"
+uv run python -m eval.bugsinpy_eval --setup
+```
+
+### 4b. Collect error traces (no LLM, needs git + pip)
+```powershell
+uv run python -m eval.bugsinpy_eval --collect
+```
+
+For each bug in the metadata:
+- Clones the project repository into `eval/bugsinpy_data/repos/<project>/`
+- Checks out the buggy commit
+- Runs `pip install -e .` and the failing test
+- Captures the error trace and ground-truth diff
+
+Takes ~20-40 min depending on network speed (clones ~5 repos, ~50-500 MB total).
+The repos are gitignored and not committed.
+
+Dry-run first to preview what will be collected:
+```powershell
+uv run python -m eval.bugsinpy_eval --collect --dry-run
+```
+
+### 4c. Run agent on collected traces (needs LLM + Ollama)
+```powershell
+uv run python -m eval.bugsinpy_eval --run
+```
+
+Runs the ZeroOps agent on each captured error trace. Grades fault localization:
+"did the agent's evidence include at least one of the files changed in the fix?"
+
+Results saved to `eval/results/<timestamp>/bugsinpy_eval.json`.
+
 ---
 
-## 8. Commit and use the results
+## 5. SO duplicate retrieval eval (no LLM, offline after first run)
 
-After running, commit the results files:
+```powershell
+uv run python -m eval.so_eval --n-pairs 300
+```
 
-```bash
+Already run once; results in `eval/results/20261115T210854Z/so_eval.json`.
+Re-run uses the cached pairs instantly. Useful if you want to verify on a
+different machine or after a code change.
+
+---
+
+## 6. Committing results
+
+After each evaluation run, commit the results files (not the repos or raw data):
+```powershell
 git add eval/results/
-git commit -m "results: benchmark run with <provider>/<model>"
+git commit -m "eval: add <model> benchmark/ablation results"
 ```
 
-The README's Evaluation section is generated from `eval/results/` files.
-Once results are committed, run:
-
-```bash
-uv run python -m eval.summarize_results
-```
-
-(Implemented as part of T6 — see HANDOFF.md.)
+Do NOT commit:
+- `eval/bugsinpy_data/repos/` (gitignored — large git repos)
+- `eval/bugsinpy_data/traces/` (gitignored — derived data)
+- `eval/so_data/` (gitignored — raw SO data)
+- `.env` (gitignored — API keys)
 
 ---
 
-## Troubleshooting
+## 7. Updating the README
 
-| Symptom | Fix |
-|---|---|
-| `UserError: Set the OLLAMA_BASE_URL env var` | Check `.env` has `OLLAMA_BASE_URL=http://localhost:11434/v1` |
-| `ValidationError` on every node | Model does not follow JSON schema; try a larger model |
-| Ollama not responding | Run `ollama serve` in a terminal; check port 11434 is free |
-| Embedding model download on first run | Expected; `all-MiniLM-L6-v2` caches after first download |
-| `incidents.db` already has data | Run `uv run python -c "from zeroops.memory.store import reset_db; reset_db()"` to clear it |
+After committing results, update `README.md → Evaluation` section.
+The numbers that go into the README must come from committed files in `eval/results/`.
+No unsubstantiated numbers, ever.
+
+For BugsInPy, report as:
+- `X/Y bugs (n_runs=3, model=qwen2.5:7b, provider=ollama)` — not bare percentages
+- State: "bugs authored by third parties; ground truth is the fix commit diff"
+
+---
+
+## 8. Troubleshooting
+
+| Symptom | Likely cause | Fix |
+|---------|-------------|-----|
+| `model not found` | Model name mismatch | Run `ollama list` and match LLM_MODEL exactly |
+| `connection refused` | Ollama not running | Run `ollama serve` in a separate terminal |
+| `PydanticAI validation failed` | Model didn't return valid JSON | Retry; switch to a larger model (14B) if persistent |
+| Benchmark hangs | Ollama overloaded | Check GPU memory; reduce `MAX_INVESTIGATION_LOOPS` to 4 |
+| Bug collect fails | Python version mismatch | Some BugsInPy bugs need Python 3.6-3.8; skip them and use the ones that work |
+| GitHub rate limit | Too many API calls | Set `GITHUB_TOKEN` env var |
