@@ -28,6 +28,7 @@ Thumbs.db
 # Project specific
 incidents.db
 *.db-journal
+eval/so_data/
 
 # Node (frontend stretch)
 web/node_modules/
