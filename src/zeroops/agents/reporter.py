@@ -183,12 +183,24 @@ def _assemble_postmortem(
             routing_reason=triage_data.get("routing_reason", ""),
         )
 
-    # Build timeline from tool_history
+    # Build timeline from tool_history — clean one-line entry per tool call
     timeline = []
     for i, t in enumerate(tool_history, 1):
         tool = t.get("tool", "unknown")
-        summary = t.get("result_summary", "")[:80]
-        timeline.append(f"Step {i}: {tool} → {summary}")
+        args = t.get("args", {})
+        # Pick the most descriptive arg (path, pattern, commit_hash)
+        arg_str = (
+            args.get("path")
+            or args.get("pattern")
+            or args.get("commit_hash")
+            or args.get("function_name")
+            or str(args)[:40]
+        )
+        # Result: first meaningful line, strip line numbers and JSON noise
+        raw = t.get("result_summary", "")
+        first_line = raw.split("\n")[0].strip().lstrip("0123456789: ").strip()[:80]
+        result_hint = f"→ {first_line}" if first_line and first_line not in ("[]", "ERROR") else ""
+        timeline.append(f"Step {i}: `{tool}({arg_str})` {result_hint}")
     if not timeline:
         timeline = ["Investigation completed via memory match." if resolution_status == "known_pattern"
                     else "Investigation completed."]
@@ -255,8 +267,9 @@ def _render_markdown(pm: Postmortem) -> str:
     triage = pm.triage
     err_type = triage.error_type if triage else "Unknown"
     sev = triage.severity.value if triage and triage.severity else "?"
+    article = "An" if err_type and err_type[0].upper() in "AEIOU" else "A"
     lines.append(
-        f"A **{err_type}** was detected with severity **{sev}**. "
+        f"{article} **{err_type}** was detected with severity **{sev}**. "
         f"Resolution status: **{pm.resolution_status}** (confidence: {pm.confidence:.0%})."
     )
     lines.append("")
