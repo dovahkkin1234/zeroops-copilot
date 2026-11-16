@@ -30,8 +30,8 @@ Produce exactly 3 fields:
 # OUTPUT FORMAT
 Return valid JSON with exactly these fields — no extra fields, no prose
 outside the JSON:
-{
+{{
   "root_cause": "...",
   "proposed_fix": "...",
   "proposed_diff": "--- a/file.py\n+++ b/file.py\n..." or null
-}
+}}
