@@ -12,6 +12,7 @@ Each incident resolved becomes N incidents prevented.
 <root_cause>{root_cause}</root_cause>
 <repo_root>{repo_path}</repo_root>
 <grep_results>{grep_results}</grep_results>
+<graph_memory_hint>{graph_files_str}</graph_memory_hint>
 
 # TASK
 Based on the pattern tag, scan the codebase for similar vulnerable

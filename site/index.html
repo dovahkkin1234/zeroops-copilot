@@ -672,8 +672,11 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:1.25
   <h2>Limitations</h2>
   <p class="section-intro">Stated plainly, so a reviewer knows exactly what this is and is not.</p>
   <ul class="limit-list">
-    <li>Memory is flat embedding retrieval, not a knowledge graph — no cross-incident
-        relationship modeling, no entity resolution, no GraphRAG.</li>
+    <li>Memory uses both embedding retrieval and a lightweight graph store (<code>networkx</code>
+        DiGraph: incident ↔ file ↔ pattern ↔ commit). The graph enables structural queries —
+        "which incidents affected this file?", "which files have been hit by this pattern before?"
+        — that cosine similarity alone cannot answer. This is not GraphRAG or full entity resolution;
+        it is relationship-aware retrieval over a small incident corpus.</li>
     <li>No personalization or user modeling — every query is treated identically.</li>
     <li>Benchmark is small (n = 7 bugs, 3 runs per condition), synthetic, and authored
         by the same person who built the agent — confidence calibration is self-reported,

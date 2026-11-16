@@ -26,6 +26,14 @@ async def problem_manager_node(state: dict) -> dict:
     pattern = hypothesis.get("pattern", "")
     root_cause = state.get("hypothesis", {}).get("statement", "")
 
+    # Graph hint: files previously seen with this pattern (from resolved incidents)
+    graph_known_files: list[str] = []
+    try:
+        from ..memory.graph_store import get_graph
+        graph_known_files = get_graph().get_files_with_pattern(pattern)
+    except Exception:
+        pass
+
     # Pre-scan: grep for related patterns to give the LLM context
     grep_results = []
     if pattern in ("incomplete_symbol_rename", "stale_import"):
@@ -51,6 +59,11 @@ async def problem_manager_node(state: dict) -> dict:
                 grep_results.append(ev)
 
     grep_str = json.dumps(grep_results, indent=2, default=str)[:3000] if grep_results else "No grep results."
+    graph_files_str = (
+        f"Graph memory: these files were previously flagged for the '{pattern}' pattern "
+        f"in past incidents: {', '.join(graph_known_files)}. Check these first."
+        if graph_known_files else ""
+    )
 
     prompt = _prompt.format(
         hypothesis=json.dumps(hypothesis, indent=2, default=str),
@@ -58,6 +71,7 @@ async def problem_manager_node(state: dict) -> dict:
         root_cause=root_cause,
         repo_path=settings.repo_path,
         grep_results=grep_str,
+        graph_files_str=graph_files_str,
     )
 
     ticket_objs = await run_as_json_list(
