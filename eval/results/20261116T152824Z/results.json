@@ -1,0 +1,110 @@
+{
+  "metadata": {
+    "timestamp": "20261116T152824Z",
+    "git_commit": "714e939",
+    "llm_provider": "ollama",
+    "llm_model": "qwen2.5:7b",
+    "utility_model": "gemini-3.5-flash",
+    "embed_model": "all-MiniLM-L6-v2",
+    "max_investigation_loops": 8,
+    "condition": "with_memory",
+    "model_rotation": null,
+    "per_bug_models": {
+      "bug1": "openai:qwen2.5:7b",
+      "bug2": "openai:qwen2.5:7b",
+      "bug3": "openai:qwen2.5:7b",
+      "bug5": "openai:qwen2.5:7b",
+      "bug6": "openai:qwen2.5:7b",
+      "bug7": "openai:qwen2.5:7b",
+      "bug4": "openai:qwen2.5:7b"
+    },
+    "token_tracking": null
+  },
+  "per_bug_prices_usd_per_1k_tokens": null,
+  "results": {
+    "bug1": {
+      "triage_correct": true,
+      "pattern_correct": true,
+      "file_found": true,
+      "confidence": 0.95,
+      "resolution_status": "resolved",
+      "tools_called": 2,
+      "duration_seconds": 64.93405055999756,
+      "prevention_tickets": 4,
+      "model": "openai:qwen2.5:7b"
+    },
+    "bug2": {
+      "triage_correct": true,
+      "pattern_correct": false,
+      "file_found": true,
+      "confidence": 0.8,
+      "resolution_status": "resolved",
+      "tools_called": 2,
+      "duration_seconds": 25.180124282836914,
+      "prevention_tickets": 0,
+      "model": "openai:qwen2.5:7b"
+    },
+    "bug3": {
+      "triage_correct": true,
+      "pattern_correct": true,
+      "file_found": true,
+      "confidence": 0.8,
+      "resolution_status": "resolved",
+      "tools_called": 2,
+      "duration_seconds": 22.730370044708252,
+      "prevention_tickets": 0,
+      "model": "openai:qwen2.5:7b"
+    },
+    "bug5": {
+      "triage_correct": true,
+      "pattern_correct": false,
+      "file_found": false,
+      "confidence": 0.9,
+      "resolution_status": "resolved",
+      "tools_called": 7,
+      "duration_seconds": 45.35001730918884,
+      "prevention_tickets": 5,
+      "model": "openai:qwen2.5:7b"
+    },
+    "bug6": {
+      "triage_correct": true,
+      "pattern_correct": true,
+      "file_found": true,
+      "confidence": 0.9,
+      "resolution_status": "resolved",
+      "tools_called": 2,
+      "duration_seconds": 23.86173701286316,
+      "prevention_tickets": 0,
+      "model": "openai:qwen2.5:7b"
+    },
+    "bug7": {
+      "triage_correct": true,
+      "pattern_correct": false,
+      "file_found": false,
+      "confidence": 0.508,
+      "resolution_status": "known_pattern",
+      "tools_called": 0,
+      "duration_seconds": 2.8033440113067627,
+      "prevention_tickets": 0,
+      "model": "openai:qwen2.5:7b"
+    },
+    "bug4": {
+      "triage_correct": true,
+      "pattern_correct": false,
+      "file_found": false,
+      "confidence": 0.95,
+      "resolution_status": "known_pattern",
+      "tools_called": 0,
+      "duration_seconds": 3.31609845161438,
+      "prevention_tickets": 0,
+      "model": "openai:qwen2.5:7b"
+    }
+  },
+  "aggregate": {
+    "pattern_accuracy_fraction": "3/7",
+    "file_identification_fraction": "4/7",
+    "avg_confidence": 0.8297,
+    "total_prevention_tickets": 9,
+    "total_duration_seconds": 188.18
+  }
+}
