@@ -4478,6 +4478,7 @@ dependencies = [
 dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "requests" },
 ]
 
 [package.metadata]
@@ -4502,6 +4503,7 @@ requires-dist = [
 dev = [
     { name = "pytest", specifier = ">=8.0" },
     { name = "pytest-asyncio", specifier = ">=0.23" },
+    { name = "requests", specifier = ">=2.31" },
 ]
 
 [[package]]

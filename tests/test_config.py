@@ -53,7 +53,11 @@ def test_max_investigation_loops_positive():
 # ── Provider-switching (T4b): test the mapping without calling any model ──────
 
 def test_ollama_provider_model_string(monkeypatch):
-    """Switching LLM_PROVIDER=ollama must produce 'ollama:' prefix, not 'anthropic:'."""
+    """Switching LLM_PROVIDER=ollama must produce 'openai:' prefix (not 'anthropic:').
+
+    PydanticAI routes Ollama through its OpenAI-compatible backend, so the model
+    string uses 'openai:<model>' while OPENAI_BASE_URL is redirected to Ollama.
+    """
     monkeypatch.setenv("LLM_PROVIDER", "ollama")
     monkeypatch.setenv("LLM_MODEL", "qwen2.5:7b")
     monkeypatch.setenv("UTILITY_MODEL", "qwen2.5:7b")
@@ -61,8 +65,10 @@ def test_ollama_provider_model_string(monkeypatch):
 
     from zeroops.config import Settings
     s = Settings()
-    assert s.pydantic_ai_model == "ollama:qwen2.5:7b"
-    assert s.pydantic_ai_utility_model == "ollama:qwen2.5:7b"
+    assert s.pydantic_ai_model == "openai:qwen2.5:7b", (
+        "Ollama provider uses 'openai:' prefix for PydanticAI's OpenAI-compatible backend"
+    )
+    assert s.pydantic_ai_utility_model == "openai:qwen2.5:7b"
     assert not s.pydantic_ai_model.startswith("anthropic:")
 
 

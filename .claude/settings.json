@@ -14,7 +14,10 @@
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(ls *)",
-      "Bash(find *)"
+      "Bash(find *)",
+      "WebFetch(domain:huggingface.co)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:cdn.jsdelivr.net)"
     ],
     "deny": [
       "Read(./.env)",
@@ -38,8 +41,13 @@
       "Bash(wget *)",
       "Bash(ssh *)",
       "Bash(sudo *)",
-      "WebFetch",
-      "WebSearch"
+      "WebSearch",
+      "Read(~/.ssh/**)",
+      "Read(~/.kaggle/**)",
+      "Read(~/.config/**)",
+      "Read(~/AppData/**)",
+      "Read(~/.bash_history)",
+      "Read(~/.claude.json)"
     ]
   }
 }

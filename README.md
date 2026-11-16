@@ -109,32 +109,50 @@ self-reported confidence, resolution status, tool-call count,
 duration, prevention-ticket count). Results are persisted to
 `eval/results/<timestamp>/` as `results.json` and `results.md`.
 
-**Run `20261113T113725Z` — full results committed to this repo.**
+Runs are committed under `eval/results/`. Each result file records the
+git commit, model, provider, backend, and loop cap used so numbers are
+traceable. The benchmark has 7 bugs (original 5 + 2 added: `api_removed`
+and `stdlib_removed`).
+
+**With-memory condition — `20261116T114317Z` (n=1 run, qwen2.5:7b, Ollama)**
 
 | Metric | Result | Notes |
 |---|---|---|
-| Pattern accuracy | 4/5 | bug5 (`stale_import`) misidentified |
-| File localization | 2/5 | bugs 2 and 4 found the pattern but not the specific file |
-| Average confidence | 86% | model self-reported; not externally calibrated |
-| L0 routing (bug4) | miss | bug1 confidence=30% fell below the 0.5 save threshold, so it was never written to memory — **this is the save contract working correctly**, not a routing bug |
-| Prevention tickets | 5 total | 1.0 per completed bug on average |
-| Total duration | 643.5s | ~10.7 min for 5 bugs end-to-end |
+| Pattern accuracy | 4/7 | bugs 5, 4, 7 misidentified |
+| File localization | 4/7 | same misses |
+| Average confidence | 81% | model self-reported; not externally calibrated |
+| L0 routing (bug4) | **✓ hit** | resolved in 2.8s, 0 tool calls — memory correctly matched bug1 |
+| Prevention tickets | 5 total | across Phase A bugs |
+| Total duration | 155.3s | ~22s/bug average |
 
-Provider: `google-gla` (Gemini). Due to the free-tier 20 req/day cap per
-model, each bug ran on a separate Flash/Flash-Lite model (see
-`results.json` → `metadata.per_bug_models` for the per-bug breakdown).
-This is a single-condition run; a multi-model ablation with consistent
-model assignment across bugs would require billing enabled or a local
-model (see `docs/RUNBOOK.md` for Ollama instructions).
+**Ablation — no-memory condition (`20261116T120726Z`, `T121355Z`, `T121648Z`, n=3 clean runs)**
+
+| Metric | Min | Max | Avg |
+|---|---|---|---|
+| Pattern accuracy | 3/7 | 6/7 | 4.7/7 |
+| File localization | 5/7 | 7/7 | 5.7/7 |
+| Average confidence | 84% | 89% | 87% |
+| bug4 investigation time | 18.7s | 28.7s | 23.1s |
+| bug4 tool calls | 2 | 2 | 2 |
+
+**Key ablation finding:** bug4 with warm memory → 2.8s, 0 tool calls (L0
+path). Without memory → avg 23.1s, 2 tool calls. The episodic memory
+directly enables the shift-left outcome the architecture is designed for.
+
+Provider: `ollama` (local `qwen2.5:7b`; OpenAI-compatible backend). No
+API billing incurred. Run: `uv run python -m eval.benchmark` per
+`docs/RUNBOOK.md`.
 
 **Limitations of this evaluation:**
 
-- n=5 bugs, synthetic, authored by the same person who built the agent —
+- n=7 bugs, synthetic, authored by the same person who built the agent —
   not an independent evaluation
-- Each bug ran on a different model; not a clean single-model measurement
+- n=1 with-memory run; spread requires more runs (the benchmark is
+  stochastic due to the LLM's sampling)
 - Confidence values are model self-reported; no ground-truth calibration
+- qwen2.5:7b is a 7B local model; results with a frontier model would differ
 - The benchmark does not cover distributed traces, async/timing bugs,
-  or any pattern outside the five seeded cases
+  or any pattern outside the seeded cases
 
 ### Memory retrieval — Stack Overflow duplicate pairs
 
