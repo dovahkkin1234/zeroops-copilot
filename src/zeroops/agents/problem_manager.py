@@ -66,7 +66,27 @@ async def problem_manager_node(state: dict) -> dict:
         prompt,
         PreventionTicket,
     )
+
+    # Filter out the incident file itself — it's the bug we just resolved,
+    # not a *different* instance of the pattern.
+    incident_file = _extract_incident_file(state.get("error_text", ""))
+    if incident_file:
+        ticket_objs = [
+            t for t in ticket_objs
+            if not t.location.startswith(incident_file)
+        ]
+
     return {"prevention_tickets": [t.model_dump() for t in ticket_objs]}
+
+
+def _extract_incident_file(error_text: str) -> str | None:
+    """Return the basename of the file in the traceback (the incident file)."""
+    import re
+    from pathlib import Path as _Path
+    matches = re.findall(r'File ["\']([^"\']+)["\']', error_text)
+    if matches:
+        return _Path(matches[-1]).name
+    return None
 
 
 def _extract_old_symbols(state: dict) -> list[str]:

@@ -1,53 +1,37 @@
 # ROLE
-You write the final postmortem in the voice of a thoughtful senior
-engineer.
+You write the root cause explanation and proposed fix for a resolved incident.
 
 # INPUT
-All accumulated state: triage, hypothesis, repro, evidence, prevention
-tickets, tool_history count, iteration count, resolution_status.
-
-<triage>{triage}</triage>
+<error>{error_text}</error>
 <hypothesis>{hypothesis}</hypothesis>
-<repro>{repro}</repro>
 <evidence>{evidence}</evidence>
-<prevention_tickets>{prevention_tickets}</prevention_tickets>
-<resolution_status>{resolution_status}</resolution_status>
-<tools_called>{tools_called}</tools_called>
-<duration_seconds>{duration_seconds}</duration_seconds>
+<repro>{repro}</repro>
 
 # TASK
-Produce a Postmortem JSON object AND a rendered Markdown report.
+Produce exactly 3 fields:
 
-If resolution_status is "known_pattern", produce an abbreviated L0-style
-report using only triage data and matched incident memory. Do not
-attempt to fill hypothesis, repro, or prevention_tickets.
+1. **root_cause** (required): One paragraph explaining the root cause
+   mechanistically. Name the specific files, symbols, or code paths
+   involved. E.g. "middleware.py imports `validate_token` from `auth`,
+   but that symbol was renamed to `verify_token` in a refactor. The
+   import was not updated, so every request through `require_auth` raises
+   AttributeError."
 
-If resolution_status is "uncertain", be honest: document what was tried,
-what evidence was gathered, and why a conclusion couldn't be reached.
-Populate failure_reason.
+2. **proposed_fix** (required): One or two sentences describing the
+   minimal fix. Be concrete: name the file and the change.
+   E.g. "In middleware.py line 2, change `from auth import validate_token`
+   to `from auth import verify_token`. Update all callers of
+   `validate_token` to use `verify_token`."
 
-# MARKDOWN STRUCTURE
-1. **Incident Summary** (2 sentences)
-2. **Severity and Tier** (one line, cite the SLA implication)
-3. **Timeline** (bulleted, chronological investigation trace)
-4. **Root Cause** (one paragraph)
-5. **Evidence** (table: source | observation | relevance)
-6. **Proposed Fix** (code diff in a fenced block)
-7. **Reproduction** (the repro script, and whether it was verified)
-8. **Prevention Tickets** (one per similar pattern found, with file:line
-   and proposed fix)
-9. **What This Tells Us** (one paragraph — the systemic takeaway,
-   connecting this incident to the broader ZeroOps picture)
-
-# VOICE GUIDELINES
-- Write like you're explaining to a colleague, not a customer.
-- Be honest about confidence. If verified=False, say so.
-- Never overstate. "Likely" and "probably" are okay when warranted.
-- End with the prevention perspective: count the prevention_tickets list
-  in the input and state the exact number. Example: "This incident made
-  the system safer — 2 future incidents prevented." If prevention_tickets
-  is empty, say "No similar patterns found in the codebase."
+3. **proposed_diff** (optional, null if uncertain): A unified diff block
+   showing the exact change. Only include if you have enough evidence to
+   produce a correct diff. Otherwise return null.
 
 # OUTPUT FORMAT
-Return a Postmortem JSON object. The markdown field contains the full
-rendered report as described above.
+Return valid JSON with exactly these fields — no extra fields, no prose
+outside the JSON:
+{
+  "root_cause": "...",
+  "proposed_fix": "...",
+  "proposed_diff": "--- a/file.py\n+++ b/file.py\n..." or null
+}

@@ -36,3 +36,4 @@ class AgentState(TypedDict):
     # Final output
     postmortem: Optional[dict]
     duration_seconds: Optional[float]
+    start_time: Optional[float]  # epoch seconds; used by reporter to compute duration

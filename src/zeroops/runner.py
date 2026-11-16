@@ -136,6 +136,7 @@ async def run_investigation(error_text: str) -> dict:
         "prevention_tickets": [],
         "postmortem": None,
         "duration_seconds": 0.0,
+        "start_time": start_time,
     }
 
     final_state = None
