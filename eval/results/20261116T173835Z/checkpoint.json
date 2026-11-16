@@ -1,0 +1,79 @@
+{
+  "bug1": {
+    "triage_correct": true,
+    "pattern_correct": true,
+    "file_found": true,
+    "confidence": 0.8,
+    "resolution_status": "resolved",
+    "tools_called": 2,
+    "duration_seconds": 653.1524074077606,
+    "prevention_tickets": 4,
+    "model": "openai:qwen2.5:7b"
+  },
+  "bug2": {
+    "triage_correct": true,
+    "pattern_correct": true,
+    "file_found": true,
+    "confidence": 0.95,
+    "resolution_status": "resolved",
+    "tools_called": 2,
+    "duration_seconds": 16.835400819778442,
+    "prevention_tickets": 1,
+    "model": "openai:qwen2.5:7b"
+  },
+  "bug3": {
+    "triage_correct": true,
+    "pattern_correct": false,
+    "file_found": true,
+    "confidence": 0.85,
+    "resolution_status": "resolved",
+    "tools_called": 2,
+    "duration_seconds": 17.298262357711792,
+    "prevention_tickets": 0,
+    "model": "openai:qwen2.5:7b"
+  },
+  "bug5": {
+    "triage_correct": true,
+    "pattern_correct": true,
+    "file_found": false,
+    "confidence": 0.8,
+    "resolution_status": "resolved",
+    "tools_called": 3,
+    "duration_seconds": 30.084492206573486,
+    "prevention_tickets": 6,
+    "model": "openai:qwen2.5:7b"
+  },
+  "bug6": {
+    "triage_correct": true,
+    "pattern_correct": false,
+    "file_found": true,
+    "confidence": 0.8,
+    "resolution_status": "resolved",
+    "tools_called": 2,
+    "duration_seconds": 23.65326476097107,
+    "prevention_tickets": 1,
+    "model": "openai:qwen2.5:7b"
+  },
+  "bug7": {
+    "triage_correct": true,
+    "pattern_correct": true,
+    "file_found": true,
+    "confidence": 0.8,
+    "resolution_status": "resolved",
+    "tools_called": 2,
+    "duration_seconds": 24.999446630477905,
+    "prevention_tickets": 7,
+    "model": "openai:qwen2.5:7b"
+  },
+  "bug4": {
+    "triage_correct": true,
+    "pattern_correct": false,
+    "file_found": false,
+    "confidence": 0.725,
+    "resolution_status": "known_pattern",
+    "tools_called": 0,
+    "duration_seconds": 2.8267412185668945,
+    "prevention_tickets": 0,
+    "model": "openai:qwen2.5:7b"
+  }
+}

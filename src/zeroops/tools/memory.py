@@ -115,7 +115,11 @@ def save_incident(postmortem: dict) -> int:
             for ev in hyp["evidence"]:
                 ref = ev.get("reference", "")
                 if ref and ev.get("source") == "file":
-                    affected_files.append(ref.split("/")[-1].split("\\")[-1])
+                    # Strip path separators and any :line suffix
+                    basename = ref.split("/")[-1].split("\\")[-1]
+                    basename = basename.split(":")[0]
+                    if basename:
+                        affected_files.append(basename)
 
     incident_data = {
         "error_text": postmortem.get("error_text", ""),
