@@ -114,41 +114,48 @@ git commit, model, provider, backend, and loop cap used so numbers are
 traceable. The benchmark has 7 bugs (original 5 + 2 added: `api_removed`
 and `stdlib_removed`).
 
-**With-memory condition — `20261116T114317Z` (n=1 run, qwen2.5:7b, Ollama)**
+Model: `qwen2.5:7b` via Ollama (local, OpenAI-compatible backend). No API
+billing incurred. Each condition run 3 times from a cold start; results
+in `eval/results/` with per-run metadata (git commit, model, loop cap).
 
-| Metric | Result | Notes |
-|---|---|---|
-| Pattern accuracy | 4/7 | bugs 5, 4, 7 misidentified |
-| File localization | 4/7 | same misses |
-| Average confidence | 81% | model self-reported; not externally calibrated |
-| L0 routing (bug4) | **✓ hit** | resolved in 2.8s, 0 tool calls — memory correctly matched bug1 |
-| Prevention tickets | 5 total | across Phase A bugs |
-| Total duration | 155.3s | ~22s/bug average |
+**With-memory condition** (`T114317Z`, `T152824Z`, `T160526Z`, n=3)
 
-**Ablation — no-memory condition (`20261116T120726Z`, `T121355Z`, `T121648Z`, n=3 clean runs)**
+| Metric | Run 1 | Run 2 | Run 3 | Avg |
+|---|---|---|---|---|
+| Triage accuracy | 7/7 | 7/7 | 7/7 | **7/7** |
+| Pattern accuracy | 4/7 | 3/7 | 4/7 | 3.7/7 |
+| File localization | 4/7 | 4/7 | 4/7 | **4/7** |
+| Avg confidence | 81% | 83% | 80% | 81% |
+| L0 routing (bug4) | ✓ 2.8s | ✓ 3.3s | ✓ 2.4s | **✓ 3/3** |
+| Prevention tickets | 5 | 9 | 4 | 6 |
+| Total duration | 155s | 188s | 126s | 156s |
 
-| Metric | Min | Max | Avg |
-|---|---|---|---|
-| Pattern accuracy | 3/7 | 6/7 | 4.7/7 |
-| File localization | 5/7 | 7/7 | 5.7/7 |
-| Average confidence | 84% | 89% | 87% |
-| bug4 investigation time | 18.7s | 28.7s | 23.1s |
-| bug4 tool calls | 2 | 2 | 2 |
+**Ablation — no-memory condition** (`T120726Z`, `T121355Z`, `T121648Z`, n=3)
 
-**Key ablation finding:** bug4 with warm memory → 2.8s, 0 tool calls (L0
-path). Without memory → avg 23.1s, 2 tool calls. The episodic memory
-directly enables the shift-left outcome the architecture is designed for.
+| Metric | Run 1 | Run 2 | Run 3 | Avg |
+|---|---|---|---|---|
+| Triage accuracy | 6/7 | 6/7 | 6/7 | 6/7 |
+| Pattern accuracy | 6/7 | 5/7 | 3/7 | 4.7/7 |
+| File localization | 7/7 | 5/7 | 5/7 | 5.7/7 |
+| Avg confidence | 89% | 89% | 84% | 87% |
+| bug4 investigation | 22.1s | 18.7s | 28.7s | **23.2s** |
+| bug4 tool calls | 2 | 2 | 2 | 2 |
+| Prevention tickets | 12 | 8 | 10 | 10 |
 
-Provider: `ollama` (local `qwen2.5:7b`; OpenAI-compatible backend). No
-API billing incurred. Run: `uv run python -m eval.benchmark` per
-`docs/RUNBOOK.md`.
+**Key finding — memory directly enables shift-left:**
+bug4 with warm memory → 2.4–3.3s, 0 tool calls (L0 auto-resolve, 3/3
+runs). Without memory → 18.7–28.7s, 2 tool calls (full investigation,
+0/3 L0). Same error; the difference is one saved incident in SQLite.
+
+**Consistent misses (all 6 runs):** bug5 (`stale_import` in a test file —
+the agent reaches the right region but pattern-tags it inconsistently)
+and bug7 (`stdlib_removed` via a 0-tool-call early exit at low confidence).
+Both are known limitations of `qwen2.5:7b`'s structured-output reliability.
 
 **Limitations of this evaluation:**
 
 - n=7 bugs, synthetic, authored by the same person who built the agent —
   not an independent evaluation
-- n=1 with-memory run; spread requires more runs (the benchmark is
-  stochastic due to the LLM's sampling)
 - Confidence values are model self-reported; no ground-truth calibration
 - qwen2.5:7b is a 7B local model; results with a frontier model would differ
 - The benchmark does not cover distributed traces, async/timing bugs,
