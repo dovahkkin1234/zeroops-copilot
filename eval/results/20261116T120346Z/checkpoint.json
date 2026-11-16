@@ -1,0 +1,80 @@
+{
+  "bug1": {
+    "triage_correct": true,
+    "pattern_correct": true,
+    "file_found": true,
+    "confidence": 0.8,
+    "resolution_status": "resolved",
+    "tools_called": 2,
+    "duration_seconds": 55.50942659378052,
+    "prevention_tickets": 5,
+    "model": "openai:qwen2.5:7b"
+  },
+  "bug2": {
+    "triage_correct": false,
+    "pattern_correct": false,
+    "file_found": false,
+    "confidence": 0.0,
+    "resolution_status": "error",
+    "tools_called": 0,
+    "duration_seconds": 19.44957423210144,
+    "prevention_tickets": 0,
+    "error": "Expecting ',' delimiter: line 3 column 308 (char 333)",
+    "model": "openai:qwen2.5:7b"
+  },
+  "bug3": {
+    "triage_correct": true,
+    "pattern_correct": true,
+    "file_found": true,
+    "confidence": 0.95,
+    "resolution_status": "resolved",
+    "tools_called": 2,
+    "duration_seconds": 19.74469780921936,
+    "prevention_tickets": 0,
+    "model": "openai:qwen2.5:7b"
+  },
+  "bug5": {
+    "triage_correct": true,
+    "pattern_correct": true,
+    "file_found": false,
+    "confidence": 0.8,
+    "resolution_status": "resolved",
+    "tools_called": 3,
+    "duration_seconds": 33.262470960617065,
+    "prevention_tickets": 5,
+    "model": "openai:qwen2.5:7b"
+  },
+  "bug6": {
+    "triage_correct": true,
+    "pattern_correct": true,
+    "file_found": true,
+    "confidence": 0.8,
+    "resolution_status": "resolved",
+    "tools_called": 2,
+    "duration_seconds": 18.335939407348633,
+    "prevention_tickets": 0,
+    "model": "openai:qwen2.5:7b"
+  },
+  "bug7": {
+    "triage_correct": true,
+    "pattern_correct": false,
+    "file_found": false,
+    "confidence": 0.508,
+    "resolution_status": "known_pattern",
+    "tools_called": 0,
+    "duration_seconds": 2.57662296295166,
+    "prevention_tickets": 0,
+    "model": "openai:qwen2.5:7b"
+  },
+  "bug4": {
+    "triage_correct": false,
+    "pattern_correct": true,
+    "file_found": true,
+    "confidence": 0.9,
+    "resolution_status": "resolved",
+    "tools_called": 2,
+    "duration_seconds": 22.43251371383667,
+    "prevention_tickets": 2,
+    "model": "openai:qwen2.5:7b"
+  }
+}

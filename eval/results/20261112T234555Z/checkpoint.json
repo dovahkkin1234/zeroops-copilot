@@ -1,0 +1,57 @@
+{
+  "bug1": {
+    "triage_correct": false,
+    "pattern_correct": false,
+    "file_found": false,
+    "confidence": 0.0,
+    "resolution_status": "error",
+    "tools_called": 0,
+    "duration_seconds": 868.4444177150726,
+    "prevention_tickets": 0,
+    "error": "status_code: 503, model_name: gemini-3.8-flash, body: {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+  },
+  "bug2": {
+    "triage_correct": false,
+    "pattern_correct": false,
+    "file_found": false,
+    "confidence": 0.0,
+    "resolution_status": "error",
+    "tools_called": 0,
+    "duration_seconds": 15.09908938407898,
+    "prevention_tickets": 0,
+    "error": "status_code: 503, model_name: gemini-3.8-flash, body: {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+  },
+  "bug3": {
+    "triage_correct": false,
+    "pattern_correct": false,
+    "file_found": false,
+    "confidence": 0.0,
+    "resolution_status": "error",
+    "tools_called": 0,
+    "duration_seconds": 34.89969754219055,
+    "prevention_tickets": 0,
+    "error": "status_code: 503, model_name: gemini-3.8-flash, body: {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+  },
+  "bug5": {
+    "triage_correct": false,
+    "pattern_correct": false,
+    "file_found": false,
+    "confidence": 0.0,
+    "resolution_status": "error",
+    "tools_called": 0,
+    "duration_seconds": 20.471287488937378,
+    "prevention_tickets": 0,
+    "error": "status_code: 503, model_name: gemini-3.8-flash, body: {'error': {'code': 503, 'message': 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', 'status': 'UNAVAILABLE'}}"
+  },
+  "bug4": {
+    "triage_correct": false,
+    "pattern_correct": false,
+    "file_found": false,
+    "confidence": 0.0,
+    "resolution_status": "error",
+    "tools_called": 0,
+    "duration_seconds": 632.8376035690308,
+    "prevention_tickets": 0,
+    "error": "status_code: 504, model_name: gemini-3.8-flash, body: {'error': {'code': 504, 'message': 'Deadline expired before operation could complete.', 'status': 'DEADLINE_EXCEEDED'}}"
+  }
+}

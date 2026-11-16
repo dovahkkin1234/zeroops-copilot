@@ -1,0 +1,55 @@
+{
+  "metadata": {
+    "timestamp": "20261114T070024Z",
+    "git_commit": "5d23944",
+    "llm_provider": "google-gla",
+    "llm_model": "gemini-3.5-flash",
+    "utility_model": "gemini-3.5-flash",
+    "embed_model": "all-MiniLM-L6-v2",
+    "max_investigation_loops": 8,
+    "condition": "with_memory",
+    "model_rotation": [
+      "gemini-3.5-flash",
+      "gemini-3.6-flash"
+    ],
+    "per_bug_models": {
+      "bug6": "google-gla:gemini-3.5-flash",
+      "bug7": "google-gla:gemini-3.6-flash"
+    },
+    "token_tracking": null
+  },
+  "per_bug_prices_usd_per_1k_tokens": null,
+  "results": {
+    "bug6": {
+      "triage_correct": false,
+      "pattern_correct": false,
+      "file_found": false,
+      "confidence": 0.0,
+      "resolution_status": "error",
+      "tools_called": 0,
+      "duration_seconds": 12.756625890731812,
+      "prevention_tickets": 0,
+      "error": "status_code: 402, model_name: gemini-3.5-flash, body: {'error': {'code': 402, 'message': 'Your prepayment credits are depleted. Please go to AI Studio at https://ai.studio/projects to manage your project and billing. Learn more at https://ai.google.dev/gemini-api/docs/billing#prepay. ', 'status': 'RESOURCE_EXHAUSTED'}}",
+      "model": "google-gla:gemini-3.5-flash"
+    },
+    "bug7": {
+      "triage_correct": false,
+      "pattern_correct": false,
+      "file_found": false,
+      "confidence": 0.0,
+      "resolution_status": "error",
+      "tools_called": 0,
+      "duration_seconds": 1.5522518157958984,
+      "prevention_tickets": 0,
+      "error": "status_code: 402, model_name: gemini-3.6-flash, body: {'error': {'code': 402, 'message': 'Your prepayment credits are depleted. Please go to AI Studio at https://ai.studio/projects to manage your project and billing. Learn more at https://ai.google.dev/gemini-api/docs/billing#prepay. ', 'status': 'RESOURCE_EXHAUSTED'}}",
+      "model": "google-gla:gemini-3.6-flash"
+    }
+  },
+  "aggregate": {
+    "pattern_accuracy_fraction": "0/2",
+    "file_identification_fraction": "0/2",
+    "avg_confidence": 0.0,
+    "total_prevention_tickets": 0,
+    "total_duration_seconds": 14.31
+  }
+}

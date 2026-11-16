@@ -1,0 +1,55 @@
+{
+  "metadata": {
+    "timestamp": "20261114T065848Z",
+    "git_commit": "5d23944",
+    "llm_provider": "ollama",
+    "llm_model": "llama3.1:8b",
+    "utility_model": "llama3.1:8b",
+    "embed_model": "all-MiniLM-L6-v2",
+    "max_investigation_loops": 8,
+    "condition": "with_memory",
+    "model_rotation": [
+      "gemini-3.5-flash",
+      "gemini-3.6-flash"
+    ],
+    "per_bug_models": {
+      "bug6": "ollama:gemini-3.5-flash",
+      "bug7": "ollama:gemini-3.6-flash"
+    },
+    "token_tracking": null
+  },
+  "per_bug_prices_usd_per_1k_tokens": null,
+  "results": {
+    "bug6": {
+      "triage_correct": false,
+      "pattern_correct": false,
+      "file_found": false,
+      "confidence": 0.0,
+      "resolution_status": "error",
+      "tools_called": 0,
+      "duration_seconds": 17.23828434944153,
+      "prevention_tickets": 0,
+      "error": "status_code: 404, model_name: gemini-3.5-flash, body: {'message': \"model 'gemini-3.5-flash' not found\", 'type': 'not_found_error', 'param': None, 'code': None}",
+      "model": "ollama:gemini-3.5-flash"
+    },
+    "bug7": {
+      "triage_correct": false,
+      "pattern_correct": false,
+      "file_found": false,
+      "confidence": 0.0,
+      "resolution_status": "error",
+      "tools_called": 0,
+      "duration_seconds": 0.5789551734924316,
+      "prevention_tickets": 0,
+      "error": "status_code: 404, model_name: gemini-3.6-flash, body: {'message': \"model 'gemini-3.6-flash' not found\", 'type': 'not_found_error', 'param': None, 'code': None}",
+      "model": "ollama:gemini-3.6-flash"
+    }
+  },
+  "aggregate": {
+    "pattern_accuracy_fraction": "0/2",
+    "file_identification_fraction": "0/2",
+    "avg_confidence": 0.0,
+    "total_prevention_tickets": 0,
+    "total_duration_seconds": 17.82
+  }
+}

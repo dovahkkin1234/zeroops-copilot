@@ -1,0 +1,57 @@
+{
+  "bug1": {
+    "triage_correct": false,
+    "pattern_correct": false,
+    "file_found": false,
+    "confidence": 0.0,
+    "resolution_status": "error",
+    "tools_called": 0,
+    "duration_seconds": 12.397752285003662,
+    "prevention_tickets": 0,
+    "error": "status_code: 404, model_name: gemini-2.5-flash, body: {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}"
+  },
+  "bug2": {
+    "triage_correct": false,
+    "pattern_correct": false,
+    "file_found": false,
+    "confidence": 0.0,
+    "resolution_status": "error",
+    "tools_called": 0,
+    "duration_seconds": 1.7694809436798096,
+    "prevention_tickets": 0,
+    "error": "status_code: 404, model_name: gemini-2.5-flash, body: {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}"
+  },
+  "bug3": {
+    "triage_correct": false,
+    "pattern_correct": false,
+    "file_found": false,
+    "confidence": 0.0,
+    "resolution_status": "error",
+    "tools_called": 0,
+    "duration_seconds": 1.5893752574920654,
+    "prevention_tickets": 0,
+    "error": "status_code: 404, model_name: gemini-2.5-flash, body: {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}"
+  },
+  "bug5": {
+    "triage_correct": false,
+    "pattern_correct": false,
+    "file_found": false,
+    "confidence": 0.0,
+    "resolution_status": "error",
+    "tools_called": 0,
+    "duration_seconds": 1.5624637603759766,
+    "prevention_tickets": 0,
+    "error": "status_code: 404, model_name: gemini-2.5-flash, body: {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}"
+  },
+  "bug4": {
+    "triage_correct": false,
+    "pattern_correct": false,
+    "file_found": false,
+    "confidence": 0.0,
+    "resolution_status": "error",
+    "tools_called": 0,
+    "duration_seconds": 1.5471293926239014,
+    "prevention_tickets": 0,
+    "error": "status_code: 404, model_name: gemini-2.5-flash, body: {'error': {'code': 404, 'message': 'This model models/gemini-2.5-flash is no longer available to new users. Please update your code to use models/gemini-3.8-flash for the latest features and improvements. We recommend you to use the Interactions API (https://aistudio.google.com/docs/get-started).', 'status': 'NOT_FOUND'}}"
+  }
+}
