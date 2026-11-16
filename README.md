@@ -147,10 +147,27 @@ bug4 with warm memory → 2.4–3.3s, 0 tool calls (L0 auto-resolve, 3/3
 runs). Without memory → 18.7–28.7s, 2 tool calls (full investigation,
 0/3 L0). Same error; the difference is one saved incident in SQLite.
 
-**Consistent misses (all 6 runs):** bug5 (`stale_import` in a test file —
-the agent reaches the right region but pattern-tags it inconsistently)
-and bug7 (`stdlib_removed` via a 0-tool-call early exit at low confidence).
-Both are known limitations of `qwen2.5:7b`'s structured-output reliability.
+**Graph-structured memory condition** (`T173835Z`, n=1 — commit `3a4af96`)
+
+| Metric | Result | vs flat-memory avg |
+|---|---|---|
+| Pattern accuracy | 4/7 | ≈ same (3.7 avg) |
+| File localization | 5/7 | +1 vs avg 4/7 |
+| Avg confidence | 82% | ≈ same |
+| L0 routing (bug4) | ✓ 2.8s | unchanged |
+| Prevention tickets | **19** | +13 vs avg 6 |
+| bug7 (stdlib removed) | ✓ pattern ✓ file | previously 0-tool/51% |
+
+Graph memory adds two measurable effects: Problem Manager receives known-vulnerable
+files as seeds (from `get_files_with_pattern`), producing more targeted prevention
+tickets; and bug7 — previously a 0-tool early exit at 51% confidence — resolved
+correctly when the graph's error-type traversal surfaced a related prior incident.
+bug1 duration was anomalously long (653s, likely Ollama cold-start) and is excluded
+from the per-bug comparison. n=1 — a single run is indicative, not conclusive.
+
+**Consistent misses across all runs:** bug5 (`stale_import` in a test file —
+the agent reaches the right region but pattern-tags it inconsistently).
+Both flat-memory and graph-memory conditions share this miss pattern.
 
 **Limitations of this evaluation:**
 
