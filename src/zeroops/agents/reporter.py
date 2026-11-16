@@ -10,12 +10,10 @@ import json
 import time
 from pathlib import Path
 
-from pydantic_ai import Agent
-from pydantic import ValidationError
-
 from ..config import settings
 from ..models import Postmortem
 from ..tools.memory import save_incident
+from ._llm import run_as_json
 
 _prompt = (Path(__file__).parent.parent / "prompts" / "reporter.md").read_text(encoding="utf-8")
 
@@ -51,20 +49,15 @@ async def reporter_node(state: dict) -> dict:
         duration_seconds=round(duration, 2),
     )
 
-    agent = Agent(
-        settings.pydantic_ai_model,
-        output_type=Postmortem,
-        system_prompt="You are a postmortem reporter. Return valid JSON only.",
-    )
-
     try:
-        result = await agent.run(prompt)
-        postmortem = result.output
-    except Exception:
-        # Fallback: construct a minimal postmortem manually
-        postmortem = _build_fallback_postmortem(
-            state, resolution_status, duration
+        postmortem = await run_as_json(
+            settings.pydantic_ai_model,
+            "You are a postmortem reporter. Return valid JSON only.",
+            prompt,
+            Postmortem,
         )
+    except Exception:
+        postmortem = _build_fallback_postmortem(state, resolution_status, duration)
 
     postmortem_dict = postmortem.model_dump() if hasattr(postmortem, 'model_dump') else postmortem
 

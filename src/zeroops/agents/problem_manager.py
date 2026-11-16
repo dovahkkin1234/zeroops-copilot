@@ -8,12 +8,10 @@ produce Prevention Tickets.
 import json
 from pathlib import Path
 
-from pydantic_ai import Agent
-from pydantic import ValidationError
-
 from ..config import settings
 from ..models import PreventionTicket
 from ..tools.code import grep_code, read_file
+from ._llm import run_as_json_list
 
 _prompt = (Path(__file__).parent.parent / "prompts" / "problem_manager.md").read_text(encoding="utf-8")
 
@@ -62,20 +60,13 @@ async def problem_manager_node(state: dict) -> dict:
         grep_results=grep_str,
     )
 
-    agent = Agent(
+    ticket_objs = await run_as_json_list(
         settings.pydantic_ai_model,
-        output_type=list[PreventionTicket],
-        system_prompt="You are a problem manager. Return a valid JSON array of PreventionTicket objects.",
+        "You are a problem manager. Return a valid JSON array of PreventionTicket objects.",
+        prompt,
+        PreventionTicket,
     )
-
-    try:
-        result = await agent.run(prompt)
-        tickets = [t.model_dump() for t in result.output]
-    except Exception:
-        # If structured output fails, return empty
-        tickets = []
-
-    return {"prevention_tickets": tickets}
+    return {"prevention_tickets": [t.model_dump() for t in ticket_objs]}
 
 
 def _extract_old_symbols(state: dict) -> list[str]:
