@@ -64,14 +64,16 @@ gating and consolidation on write, semantic retrieval on read.
 
 ## Built with
 
-- **Claude Opus 4.7** (reasoning nodes) and **Claude Haiku 4.5**
-  (non-reasoning formatting) via PydanticAI, for strict structured
-  outputs on every agent node
+- **PydanticAI** for strict structured outputs on every agent node.
+  Config defaults to `claude-opus-4-7` / `claude-haiku-4-5` (Anthropic);
+  all committed benchmark runs used `qwen2.5:7b` via **Ollama** (local,
+  free, no API billing) — see `docs/RUNBOOK.md` to reproduce either way.
 - **Claude Code**, inside the **Antigravity** IDE, as the primary
   development agent — roughly 70% of the code was scaffolded from
   scoped prompts and then reviewed/corrected by hand; the architecture,
   prompt designs, and integration logic were human-driven
 - **LangGraph** for state-machine orchestration
+- **networkx** for graph-structured incident memory (incident ↔ file ↔ pattern ↔ commit)
 - **sentence-transformers** (`all-MiniLM-L6-v2`) for local, dependency-free
   incident similarity
 - **SQLite** for incident memory
@@ -82,7 +84,12 @@ gating and consolidation on write, semantic retrieval on read.
 
 ```bash
 uv sync
-cp .env.example .env  # fill in ANTHROPIC_API_KEY
+cp .env.example .env
+# To run with Ollama (free, no API key needed — matches the benchmark runs):
+#   LLM_PROVIDER=ollama  LLM_MODEL=qwen2.5:7b  UTILITY_MODEL=qwen2.5:7b
+# To run with Anthropic Claude (requires ANTHROPIC_API_KEY):
+#   LLM_PROVIDER=anthropic  LLM_MODEL=claude-opus-4-7
+# See docs/RUNBOOK.md for full setup.
 uv run python -m zeroops.runner --error-file eval/fixtures/bug1_error.txt
 ```
 
