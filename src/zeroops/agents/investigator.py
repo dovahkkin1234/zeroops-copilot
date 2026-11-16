@@ -1,6 +1,7 @@
 """Investigator sub-graph — Planner, Tool Executor, Evaluator, Hypothesizer, Verifier."""
 
 import json
+import re
 from pathlib import Path
 
 from ..config import settings
@@ -9,6 +10,19 @@ from ..tools.code import read_file, grep_code, find_tests
 from ..tools.git import git_log, git_show
 from ..tools.repro import run_repro
 from ._llm import run_as_json
+
+
+def _extract_failing_file(error_text: str) -> str | None:
+    """Return the basename of the last File "..." entry in the traceback."""
+    matches = re.findall(r'File ["\']([^"\']+)["\']', error_text)
+    if matches:
+        return Path(matches[-1]).name
+    return None
+
+
+def _has_read_file_in_history(tool_history: list) -> bool:
+    """Return True if read_file was called at least once."""
+    return any(e.get("tool") == "read_file" for e in tool_history)
 
 _prompts_dir = Path(__file__).parent.parent / "prompts"
 _planner_prompt = (_prompts_dir / "planner.md").read_text(encoding="utf-8")
@@ -48,13 +62,32 @@ def _format_tool_history(tool_history: list) -> str:
 
 async def planner_node(state: dict) -> dict:
     """Choose the next single tool call based on current evidence."""
+    iteration = state.get("iteration", 0)
+    tool_history = state.get("tool_history", [])
+
+    # Hard enforcement: iteration 1 must always read the failing file.
+    # Small local models ignore prompt instructions here — do it in code.
+    if iteration == 0 and not _has_read_file_in_history(tool_history):
+        failing_file = _extract_failing_file(state["error_text"])
+        if failing_file:
+            return {
+                "current_plan": {
+                    "tool": "read_file",
+                    "arguments": {"path": failing_file},
+                    "reasoning": (
+                        f"Mandatory first step: read the failing file '{failing_file}' "
+                        "as named in the traceback."
+                    ),
+                }
+            }
+
     triage = state.get("triage", {})
     prompt = _planner_prompt.format(
         error_text=state["error_text"],
         triage_routing_reason=triage.get("routing_reason", "No triage hint."),
         evidence=_format_evidence(state.get("evidence", [])),
-        tool_history=_format_tool_history(state.get("tool_history", [])),
-        iteration=state.get("iteration", 1),
+        tool_history=_format_tool_history(tool_history),
+        iteration=iteration,
         max_iterations=state.get("max_iterations", 8),
     )
 
@@ -132,11 +165,34 @@ async def tool_executor_node(state: dict) -> dict:
 
 async def evaluator_node(state: dict) -> dict:
     """Decide: continue, hypothesize, or give_up."""
+    iteration = state.get("iteration", 1)
+    tool_history = state.get("tool_history", [])
+    evidence = state.get("evidence", [])
+
+    # Hard gates — enforced in code so small models cannot skip them.
+    # Gate 1: never hypothesize on the first tool call.
+    if iteration <= 1:
+        return {
+            "evaluator_decision": "continue",
+            # _note is not part of AgentState but helps with debugging in runner
+        }
+
+    # Gate 2: never hypothesize without having read at least one source file.
+    if not _has_read_file_in_history(tool_history):
+        return {"evaluator_decision": "continue"}
+
+    # Gate 3: never hypothesize when the last tool returned empty / no results.
+    if evidence:
+        last_obs = evidence[-1].get("observation", "")
+        if last_obs.strip() in ("[]", "", "No evidence collected yet.") or last_obs == "[]":
+            return {"evaluator_decision": "continue"}
+
+    # LLM decides from here — all hard gates passed.
     prompt = _evaluator_prompt.format(
         error_text=state["error_text"],
-        evidence=_format_evidence(state.get("evidence", [])),
-        tool_history=_format_tool_history(state.get("tool_history", [])),
-        iteration=state.get("iteration", 1),
+        evidence=_format_evidence(evidence),
+        tool_history=_format_tool_history(tool_history),
+        iteration=iteration,
         max_iterations=state.get("max_iterations", 8),
     )
 
