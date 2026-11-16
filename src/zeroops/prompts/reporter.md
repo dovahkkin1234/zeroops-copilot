@@ -43,8 +43,10 @@ Populate failure_reason.
 - Write like you're explaining to a colleague, not a customer.
 - Be honest about confidence. If verified=False, say so.
 - Never overstate. "Likely" and "probably" are okay when warranted.
-- End with the prevention perspective: this incident made the system
-  safer by N tickets.
+- End with the prevention perspective: count the prevention_tickets list
+  in the input and state the exact number. Example: "This incident made
+  the system safer — 2 future incidents prevented." If prevention_tickets
+  is empty, say "No similar patterns found in the codebase."
 
 # OUTPUT FORMAT
 Return a Postmortem JSON object. The markdown field contains the full

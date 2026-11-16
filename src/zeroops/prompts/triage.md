@@ -31,9 +31,19 @@ Given a raw error (stack trace, log, or user complaint), decide:
 
 # SEVERITY GUIDE
 - SEV1: service unavailable, data loss, security breach
+  Examples: database down, auth service returning 500 for all users, data
+  corruption detected.
 - SEV2: major feature broken, many users affected
+  Examples: AttributeError / ImportError in auth or middleware (all requests
+  fail), missing module that handles user-facing functionality, login broken.
 - SEV3: minor feature broken, workaround exists
+  Examples: one endpoint fails, optional feature unavailable, test suite broken.
 - SEV4: cosmetic, log noise
+  Examples: warning in logs that doesn't affect behaviour, UI glitch.
+
+IMPORTANT: An AttributeError or ImportError in an auth, middleware, or
+request-handling module is SEV2 — it blocks all requests using that code path.
+Only assign SEV4 for errors that have zero user impact.
 
 # OUTPUT FORMAT
 Return a valid TriageDecision JSON object. Do not include prose outside

@@ -135,6 +135,7 @@ async def evaluator_node(state: dict) -> dict:
     prompt = _evaluator_prompt.format(
         error_text=state["error_text"],
         evidence=_format_evidence(state.get("evidence", [])),
+        tool_history=_format_tool_history(state.get("tool_history", [])),
         iteration=state.get("iteration", 1),
         max_iterations=state.get("max_iterations", 8),
     )
