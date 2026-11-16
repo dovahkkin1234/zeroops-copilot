@@ -516,41 +516,110 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:1.25
   <h2>Evaluation</h2>
 
   <p style="font-size:.9rem;color:var(--text2);max-width:680px">
-    One benchmark run is committed to <code>eval/results/20261113T113725Z/</code>.
-    Results are from a single-condition run on the Google Gemini API (free tier);
-    each of the 5 bugs ran on a separate Flash/Flash-Lite model due to the 20 req/day
-    per-model cap — not a clean single-model measurement.
+    6 benchmark runs are committed to <code>eval/results/</code> — 3 with warm memory,
+    3 ablation (no memory). Model: <code>qwen2.5:7b</code> via Ollama (local,
+    OpenAI-compatible backend). No API billing. 7 bugs total: original 5 seeded patterns
+    plus 2 added from real Python ecosystem breaking changes (<code>pandas</code> 2.0,
+    Python 3.10 stdlib removal).
   </p>
 
-  <table style="font-size:.85rem;border-collapse:collapse;margin:.75rem 0;max-width:680px">
+  <p style="font-size:.9rem;color:var(--text2);max-width:680px;margin-top:.25rem">
+    <strong>With-memory condition</strong> (n = 3 runs, bugs run against populated SQLite memory):
+  </p>
+  <table style="font-size:.85rem;border-collapse:collapse;margin:.5rem 0 1rem;max-width:680px">
     <thead>
       <tr style="border-bottom:1px solid var(--border)">
         <th style="text-align:left;padding:.35rem .75rem .35rem 0">Metric</th>
-        <th style="text-align:left;padding:.35rem 0">Result</th>
+        <th style="text-align:center;padding:.35rem .5rem">Min</th>
+        <th style="text-align:center;padding:.35rem .5rem">Max</th>
+        <th style="text-align:center;padding:.35rem 0">Avg</th>
       </tr>
     </thead>
     <tbody>
-      <tr><td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">Pattern accuracy</td><td>4 / 5</td></tr>
-      <tr><td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">File localization</td><td>2 / 5</td></tr>
-      <tr><td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">Avg confidence (self-reported)</td><td>86%</td></tr>
-      <tr><td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">L0 routing (bug 4)</td><td>miss — bug 1 confidence 30%, below 0.5 save threshold</td></tr>
-      <tr><td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">Prevention tickets</td><td>5 total (1.0 per bug)</td></tr>
-      <tr><td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">Total duration</td><td>643.5 s (~10.7 min, 5 bugs)</td></tr>
+      <tr>
+        <td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">Triage accuracy</td>
+        <td style="text-align:center;padding:.3rem .5rem">7/7</td>
+        <td style="text-align:center;padding:.3rem .5rem">7/7</td>
+        <td style="text-align:center;padding:.3rem 0"><strong>7/7</strong></td>
+      </tr>
+      <tr>
+        <td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">Pattern accuracy</td>
+        <td style="text-align:center;padding:.3rem .5rem">3/7</td>
+        <td style="text-align:center;padding:.3rem .5rem">4/7</td>
+        <td style="text-align:center;padding:.3rem 0">3.7/7</td>
+      </tr>
+      <tr>
+        <td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">File localization</td>
+        <td style="text-align:center;padding:.3rem .5rem">4/7</td>
+        <td style="text-align:center;padding:.3rem .5rem">4/7</td>
+        <td style="text-align:center;padding:.3rem 0"><strong>4/7</strong></td>
+      </tr>
+      <tr>
+        <td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">L0 routing (bug 4)</td>
+        <td style="text-align:center;padding:.3rem .5rem" colspan="2">—</td>
+        <td style="text-align:center;padding:.3rem 0"><strong>✓ 3/3</strong> (2.4–3.3 s)</td>
+      </tr>
+      <tr>
+        <td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">Avg confidence</td>
+        <td style="text-align:center;padding:.3rem .5rem">80%</td>
+        <td style="text-align:center;padding:.3rem .5rem">83%</td>
+        <td style="text-align:center;padding:.3rem 0">81%</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p style="font-size:.9rem;color:var(--text2);max-width:680px;margin-top:.25rem">
+    <strong>Ablation — no-memory condition</strong> (n = 3 runs, memory disabled; bug 4 must be investigated):
+  </p>
+  <table style="font-size:.85rem;border-collapse:collapse;margin:.5rem 0 1rem;max-width:680px">
+    <thead>
+      <tr style="border-bottom:1px solid var(--border)">
+        <th style="text-align:left;padding:.35rem .75rem .35rem 0">Metric</th>
+        <th style="text-align:center;padding:.35rem .5rem">Min</th>
+        <th style="text-align:center;padding:.35rem .5rem">Max</th>
+        <th style="text-align:center;padding:.35rem 0">Avg</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">Pattern accuracy</td>
+        <td style="text-align:center;padding:.3rem .5rem">3/7</td>
+        <td style="text-align:center;padding:.3rem .5rem">6/7</td>
+        <td style="text-align:center;padding:.3rem 0">4.7/7</td>
+      </tr>
+      <tr>
+        <td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">File localization</td>
+        <td style="text-align:center;padding:.3rem .5rem">5/7</td>
+        <td style="text-align:center;padding:.3rem .5rem">7/7</td>
+        <td style="text-align:center;padding:.3rem 0">5.7/7</td>
+      </tr>
+      <tr>
+        <td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">bug 4 investigation time</td>
+        <td style="text-align:center;padding:.3rem .5rem">18.7 s</td>
+        <td style="text-align:center;padding:.3rem .5rem">28.7 s</td>
+        <td style="text-align:center;padding:.3rem 0"><strong>23.2 s</strong></td>
+      </tr>
+      <tr>
+        <td style="padding:.3rem .75rem .3rem 0;color:var(--text2)">bug 4 tool calls</td>
+        <td style="text-align:center;padding:.3rem .5rem">2</td>
+        <td style="text-align:center;padding:.3rem .5rem">2</td>
+        <td style="text-align:center;padding:.3rem 0">2</td>
+      </tr>
     </tbody>
   </table>
 
   <p style="font-size:.85rem;color:var(--text2);max-width:680px">
-    <strong>Caveats:</strong> n = 5, synthetic bugs authored by the builder; different
-    model per bug; confidence is model self-reported. The L0 miss is correct save-contract
-    behaviour (confidence below the 0.5 write threshold), not a routing bug. Full metadata
-    in <code>eval/results/20261113T113725Z/results.json</code>.
+    <strong>Key finding:</strong> bug 4 (a variant of bug 1's pattern) with warm memory →
+    2.4–3.3 s, 0 tool calls (L0 auto-resolve, 3/3 runs). Without memory → avg 23.2 s,
+    2 tool calls (full investigation, 0/3 L0). Same error; the difference is one saved
+    incident in SQLite. Full metadata in <code>eval/results/</code>.
   </p>
 
   <p style="font-size:.85rem;color:var(--text2);max-width:680px;margin-top:.5rem">
-    Two additional fixture bugs from real Python ecosystem breaking changes
-    (<code>pandas</code> 2.0 and Python 3.10 stdlib) are in <code>eval/fixtures/</code>
-    but have not been run against the agent — Gemini free-tier quota was exhausted before
-    those runs could complete.
+    <strong>Caveats:</strong> n = 7 bugs, synthetic, authored by the builder;
+    confidence is model self-reported; <code>qwen2.5:7b</code> is a 7B local model.
+    Consistent misses: bug 5 (stale import in a test file — pattern-tagged inconsistently)
+    and bug 7 (stdlib removal — 0-tool early exit at low confidence).
   </p>
 
   <h3 style="margin-top:1.5rem">Memory retrieval — Stack Overflow duplicate pairs</h3>
@@ -606,7 +675,7 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:1.25
     <li>Memory is flat embedding retrieval, not a knowledge graph — no cross-incident
         relationship modeling, no entity resolution, no GraphRAG.</li>
     <li>No personalization or user modeling — every query is treated identically.</li>
-    <li>Benchmark is small (n = 5 bugs with results, 7 fixtures total), synthetic, and authored
+    <li>Benchmark is small (n = 7 bugs, 3 runs per condition), synthetic, and authored
         by the same person who built the agent — confidence calibration is self-reported,
         not externally validated.</li>
     <li>This page demonstrates memory retrieval and the save contract in-browser.
