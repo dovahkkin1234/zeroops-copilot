@@ -73,7 +73,7 @@ Run through this in a private/incognito window before submitting:
 - [ ] Duplicate error text produces "upserted, not inserted" on second save
 - [ ] Page is usable at 375 px width (phone) with no horizontal scroll
 - [ ] No `.env` contents, no API keys visible in page source (Cmd/Ctrl+U)
-- [ ] The evaluation section says "No benchmark has been run…" (not a placeholder)
+- [ ] The evaluation section shows real benchmark results (n=3 runs, qwen2.5:7b, Ollama)
 
 ---
 
