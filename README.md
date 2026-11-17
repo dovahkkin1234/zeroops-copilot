@@ -64,7 +64,15 @@ gating and consolidation on write, semantic retrieval on read.
 
 ## Built with
 
-- **PydanticAI** for strict structured outputs on every agent node.
+- **PydanticAI** (and a custom `_llm.py` shim) for structured LLM outputs.
+  PydanticAI's tool-calling structured-output mode is **not** used anywhere
+  — small local models (qwen2.5:7b) fail it reliably. Instead,
+  `src/zeroops/agents/_llm.py` injects the JSON schema as text in the
+  system prompt, requests plain-string output, extracts the JSON block,
+  validates with Pydantic (including enum unwrapping), and retries once
+  with a repair prompt on failure. All agents use this path regardless of
+  provider. Prevention tickets use `run_as_json_list()`, which returns `[]`
+  silently after a failed retry — a known gap.
   Config defaults to `claude-opus-4-7` / `claude-haiku-4-5` (Anthropic);
   all committed benchmark runs used `qwen2.5:7b` via **Ollama** (local,
   free, no API billing) — see `docs/RUNBOOK.md` to reproduce either way.
@@ -101,15 +109,16 @@ uv run python -m eval.benchmark
 
 ## Demo scenarios
 
-The repo ships with `demo_repo/` — a toy Python app with 5 seeded bugs.
+The repo ships with `demo_repo/` — a toy Python app with 7 bugs (5
+original + `api_removed` + `stdlib_removed`).
 Bug 4 is a deliberate variant of bug 1's pattern
 (`incomplete_symbol_rename`), used specifically to exercise the Triage
 L0 fast path once memory has been warmed by an earlier run.
 
 ## Evaluation
 
-`eval/benchmark.py` runs all 5 seeded bugs in two phases — cold-start
-(bugs 1, 2, 3, 5 against empty memory) and warm-memory (bug 4, which
+`eval/benchmark.py` runs all 7 bugs in two phases — cold-start
+(bugs 1, 2, 3, 5–7 against empty memory) and warm-memory (bug 4, which
 should hit the L0 path) — and scores 8 metrics per bug (triage
 correctness, pattern correctness, file-localization correctness,
 self-reported confidence, resolution status, tool-call count,
@@ -228,26 +237,31 @@ For reviewers unfamiliar with AMS vocabulary:
 
 ## Limitations (honest scope boundaries)
 
-- **No knowledge graph / GraphRAG.** Incident memory is flat rows +
-  vector similarity, not an entity graph — there's no modeling of
-  relationships *between* incidents, files, or root causes beyond
-  independent embeddings. A graph-structured memory (incidents ↔ files
-  ↔ commits ↔ root-cause patterns) is the most obvious next step and
-  isn't built yet.
+- **Lightweight graph store, not GraphRAG.** Incident memory uses both
+  flat embedding retrieval and a networkx DiGraph (incidents ↔ files ↔
+  patterns, commit `3a4af96`). The graph supports 1-hop traversal (same
+  file, same error type, same pattern) but is not a full knowledge graph
+  or GraphRAG system — no cross-incident entity resolution, no reasoning
+  over graph structure beyond direct neighbours.
 - **No personalization layer.** The system treats every incoming error
   identically; there's no per-user or per-team modeling, no implicit
   feedback loop, no notion of a user's history shaping how results are
   presented.
-- **Small synthetic benchmark.** One run of 5 seeded bugs is committed
-  to `eval/results/`; the bugs were authored by the builder and are not
-  an independent evaluation. See the Evaluation section for the full
-  caveats.
+- **Small synthetic benchmark.** n=3 runs of 7 self-authored bugs are
+  committed to `eval/results/`; the bugs were written by the builder and
+  are not an independent evaluation. See the Evaluation section for the
+  full caveats.
+- **Prevention tickets can silently disappear.** `run_as_json_list()`
+  returns `[]` after a failed retry with no error raised. If the model
+  returns malformed JSON for prevention tickets on the second attempt,
+  the Problem Manager node produces no tickets and the postmortem reports
+  zero — there is no visible failure.
 - **No web UI.** `server.py` is a placeholder; the CLI is the only
   interface.
-- **Test suite covers only the offline layer.** `tests/` has 67 pytest
+- **Test suite covers only the offline layer.** `tests/` has 80 pytest
   tests for models, state, memory (save contract, upsert, search), graph
-  routing, and config — all offline and without an API key. End-to-end
-  agent tests require a model backend and are not included.
+  store, routing, and config — all offline and without an API key.
+  End-to-end agent tests require a model backend and are not included.
 - Python only, single-service, synchronous stack traces. Out of scope:
   distributed traces, async/timing bugs, data-layer issues,
   infrastructure failures.
