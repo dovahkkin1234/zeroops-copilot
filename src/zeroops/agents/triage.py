@@ -6,6 +6,7 @@ from pathlib import Path
 
 from ..config import settings
 from ..models import TriageDecision
+from ..memory.store import get_by_id
 from ..tools.memory import search_past_incidents_with_graph
 from ._llm import run_as_json
 
@@ -64,8 +65,25 @@ async def triage_node(state: dict) -> dict:
         TriageDecision,
     )
 
+    triage_dict = triage_obj.model_dump()
+
+    # For L0 hits, store the retrieved incident's pattern/files so the
+    # grader can apply uniform scoring (rule G1/G2 in eval/grading_rules.md).
+    if triage_obj.classification == "known_pattern" and triage_obj.matched_incident_id:
+        matched = get_by_id(triage_obj.matched_incident_id)
+        if matched:
+            triage_dict["matched_pattern"] = matched.get("root_cause_pattern")
+            raw_files = matched.get("affected_files")
+            if isinstance(raw_files, str):
+                try:
+                    import json as _json
+                    raw_files = _json.loads(raw_files)
+                except Exception:
+                    raw_files = [raw_files]
+            triage_dict["matched_files"] = raw_files or []
+
     return {
-        "triage": triage_obj.model_dump(),
+        "triage": triage_dict,
         "iteration": 0,
         "max_iterations": settings.max_investigation_loops,
     }

@@ -169,18 +169,29 @@ def _score_result(bug_def: dict, state: dict) -> dict:
     else:
         scores["triage_correct"] = triage.get("classification") in ("novel", "known_pattern")
 
-    # 2. Root cause pattern match
-    actual_pattern = hypothesis.get("pattern", "") if hypothesis else ""
+    # 2. Root cause pattern match (G1: uniform rule — use retrieved pattern for L0)
+    resolution = postmortem.get("resolution_status", "") if postmortem else ""
+    if resolution == "known_pattern":
+        actual_pattern = triage.get("matched_pattern") or ""
+    else:
+        actual_pattern = hypothesis.get("pattern", "") if hypothesis else ""
     scores["pattern_correct"] = actual_pattern == bug_def["expected_pattern"]
 
-    # 3. File identification — did we find the right file in evidence?
-    evidence = state.get("evidence", [])
-    found_files = set()
-    for ev in evidence:
-        ref = ev.get("reference", "")
-        if ref:
-            found_files.add(ref.replace("\\", "/"))
-    scores["file_found"] = any(bug_def["expected_file"] in f for f in found_files)
+    # 3. File identification (G2: uniform rule — use retrieved files for L0)
+    if resolution == "known_pattern":
+        matched_files = triage.get("matched_files") or []
+        scores["file_found"] = any(
+            bug_def["expected_file"] in str(f).replace("\\", "/")
+            for f in matched_files
+        )
+    else:
+        evidence = state.get("evidence", [])
+        found_files = set()
+        for ev in evidence:
+            ref = ev.get("reference", "")
+            if ref:
+                found_files.add(ref.replace("\\", "/"))
+        scores["file_found"] = any(bug_def["expected_file"] in f for f in found_files)
 
     # 4. Confidence
     scores["confidence"] = postmortem.get("confidence", 0.0) if postmortem else 0.0
