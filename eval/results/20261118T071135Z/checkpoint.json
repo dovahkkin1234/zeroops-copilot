@@ -1,0 +1,79 @@
+{
+  "bug1": {
+    "triage_correct": true,
+    "pattern_correct": false,
+    "file_found": false,
+    "confidence": 0.0,
+    "resolution_status": "known_pattern",
+    "tools_called": 0,
+    "duration_seconds": 35.517494678497314,
+    "prevention_tickets": 0,
+    "model": "openai:qwen2.5:7b"
+  },
+  "bug2": {
+    "triage_correct": true,
+    "pattern_correct": false,
+    "file_found": false,
+    "confidence": 0.0,
+    "resolution_status": "known_pattern",
+    "tools_called": 0,
+    "duration_seconds": 2.102099895477295,
+    "prevention_tickets": 0,
+    "model": "openai:qwen2.5:7b"
+  },
+  "bug3": {
+    "triage_correct": true,
+    "pattern_correct": true,
+    "file_found": true,
+    "confidence": 0.9,
+    "resolution_status": "resolved",
+    "tools_called": 2,
+    "duration_seconds": 17.889421701431274,
+    "prevention_tickets": 0,
+    "model": "openai:qwen2.5:7b"
+  },
+  "bug5": {
+    "triage_correct": true,
+    "pattern_correct": false,
+    "file_found": false,
+    "confidence": 0.9,
+    "resolution_status": "resolved",
+    "tools_called": 4,
+    "duration_seconds": 29.990335941314697,
+    "prevention_tickets": 2,
+    "model": "openai:qwen2.5:7b"
+  },
+  "bug6": {
+    "triage_correct": true,
+    "pattern_correct": true,
+    "file_found": true,
+    "confidence": 0.8,
+    "resolution_status": "resolved",
+    "tools_called": 2,
+    "duration_seconds": 21.963404417037964,
+    "prevention_tickets": 0,
+    "model": "openai:qwen2.5:7b"
+  },
+  "bug7": {
+    "triage_correct": true,
+    "pattern_correct": true,
+    "file_found": true,
+    "confidence": 0.8,
+    "resolution_status": "resolved",
+    "tools_called": 2,
+    "duration_seconds": 16.485520362854004,
+    "prevention_tickets": 0,
+    "model": "openai:qwen2.5:7b"
+  },
+  "bug4": {
+    "triage_correct": true,
+    "pattern_correct": true,
+    "file_found": false,
+    "confidence": 0.8,
+    "resolution_status": "known_pattern",
+    "tools_called": 0,
+    "duration_seconds": 2.6574504375457764,
+    "prevention_tickets": 0,
+    "model": "openai:qwen2.5:7b"
+  }
+}
