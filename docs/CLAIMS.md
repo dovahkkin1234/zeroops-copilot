@@ -259,10 +259,10 @@ Pydantic validation, not PydanticAI's native structured-output protocol.
 
 ## Claims with no committed evidence (do not add to resume)
 
-| Claim | Why it cannot be added |
+| Claim | Status |
 |---|---|
-| "Anthropic provider validated" | No API key; Anthropic path never run end-to-end |
-| "Docker / containerized" | Docker not yet built (Task 3 pending) |
-| BugsInPy evaluation | `eval/bugsinpy_eval.py` exists but no results committed |
-| "Live demo URL" | Site deployed but Task 2 (static verification) pending |
-| Graph memory improves accuracy | n=1 run; not conclusive (stated in README) |
+| "Anthropic provider validated" | No API key; Anthropic path never run end-to-end — do not claim |
+| "Docker / containerized" | Dockerfile and docker-compose.yml committed; `docker run --rm` verified locally (80 passed). Files exist but not in CI and not independently reproduced — claim with the caveat "locally verified" |
+| BugsInPy evaluation | `eval/bugsinpy_eval.py` exists but no results committed — do not claim |
+| "Live demo URL" | Site built and deployed to Netlify; public URL not personally tested by owner in incognito — verify before submitting |
+| Graph memory improves accuracy | n=1 run; not conclusive (stated in README) — do not claim |

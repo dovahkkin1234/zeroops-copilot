@@ -618,8 +618,15 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:1.25
   <p style="font-size:.85rem;color:var(--text2);max-width:680px;margin-top:.5rem">
     <strong>Caveats:</strong> n = 7 bugs, synthetic, authored by the builder;
     confidence is model self-reported; <code>qwen2.5:7b</code> is a 7B local model.
-    Consistent misses: bug 5 (stale import in a test file — pattern-tagged inconsistently)
-    and bug 7 (stdlib removal — 0-tool early exit at low confidence).
+    Consistent miss: bug 5 (stale import in a test file — pattern-tagged inconsistently).
+    <strong>L0 false-positive risk:</strong> in 3/3 prior with-memory runs, bug 7
+    (stdlib removal, <code>AttributeError</code>, expected <code>stale_import</code>)
+    matched bug 1's incident (<code>incomplete_symbol_rename</code>, same error class)
+    due to identical template text — returning the wrong pattern at L0.
+    <strong>Empty-answer risk:</strong> in one run, bugs 1 and 2 were routed to L0
+    against an empty database (0% match confidence, 0 tools, no answer produced) because
+    L0 routing is the LLM's classification decision — the 0.85 threshold in the prompt
+    is guidance, not a code-enforced gate.
   </p>
 
   <h3 style="margin-top:1.5rem">Memory retrieval — Stack Overflow duplicate pairs</h3>
@@ -698,12 +705,11 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:1.25
   <p style="font-size:.9rem;color:var(--text2);max-width:680px">
     The three-agent pattern generalizes to the broader ITIL taxonomy — service requests,
     change management, and event correlation. Directions being considered for a reworked
-    successor: graph-structured memory linking incidents to affected files, root-cause patterns,
-    and commits (the missing piece for GraphRAG-style retrieval); a personalization layer that
-    adapts routing thresholds and investigation depth to individual on-call engineers over time;
-    a streaming investigation UI for human-in-the-loop review; and running the benchmark on
-    broader, externally-sourced incident corpora to move beyond the current self-authored fixture
-    set. These are directions, not commitments — the first version is what it is.
+    successor: a personalization layer that adapts routing thresholds and investigation depth
+    to individual on-call engineers over time; a streaming investigation UI for human-in-the-loop
+    review; and running the benchmark on broader, externally-sourced incident corpora to move
+    beyond the current self-authored fixture set. These are directions, not commitments —
+    the first version is what it is.
   </p>
 </section>
 

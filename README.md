@@ -23,10 +23,13 @@ machine, sharing one `AgentState`, one tool catalog, and one SQLite-backed
 memory store:
 
 - **Triage Agent** — runs semantic similarity search against learned
-  incident memory. If the top match clears a similarity threshold (0.85)
-  with a matching error type, the ticket is auto-resolved from memory
-  (L0 path). Otherwise it's routed to the Investigator, with any
-  below-threshold match attached as a hint.
+  incident memory and passes the results to the LLM, which classifies
+  the ticket as `known_pattern` or `novel`. The 0.85 similarity /
+  same-error-type threshold is stated as guidance in
+  `prompts/triage.md`; it is not enforced in code — the LLM decides the
+  classification. If classified `known_pattern`, the ticket is
+  auto-resolved from memory (L0 path). Otherwise it's routed to the
+  Investigator, with any below-threshold match attached as a hint.
 - **Investigator Agent** — a bounded ReAct loop: Planner decides the next
   tool call, Tool Executor runs it, and a dedicated Evaluator node
   decides after every step whether to `continue`, `hypothesize`, or
@@ -190,16 +193,26 @@ runs). Without memory → 18.7–28.7s, 2 tool calls (full investigation,
 | Prevention tickets | **19** | +13 vs avg 6 |
 | bug7 (stdlib removed) | ✓ pattern ✓ file | previously 0-tool/51% |
 
-Graph memory adds two measurable effects: Problem Manager receives known-vulnerable
-files as seeds (from `get_files_with_pattern`), producing more targeted prevention
-tickets; and bug7 — previously a 0-tool early exit at 51% confidence — resolved
-correctly when the graph's error-type traversal surfaced a related prior incident.
+In the single n=1 graph-memory run, two differences were observed: Problem Manager
+received known-vulnerable files as seeds (from `get_files_with_pattern`), producing
+more targeted prevention tickets; and bug7 — previously a 0-tool early exit at 51%
+confidence — resolved correctly when the graph's error-type traversal surfaced a
+related prior incident.
 bug1 duration was anomalously long (653s, likely Ollama cold-start) and is excluded
 from the per-bug comparison. n=1 — a single run is indicative, not conclusive.
 
 **Consistent misses across all runs:** bug5 (`stale_import` in a test file —
 the agent reaches the right region but pattern-tags it inconsistently).
 Both flat-memory and graph-memory conditions share this miss pattern.
+
+**Run 20261118T071135Z — bug1 and bug2 empty-answer finding:** In this run,
+bugs 1 and 2 were routed to `known_pattern` with match_confidence = 0.0 and
+0 tools called, returning no answer (confidence below the 0.5 save-contract
+threshold, so neither incident was saved to memory). The database was empty
+when both ran. This happened because L0 routing is decided by the LLM's
+classification: the 0.85 similarity / same-error-type rule exists in
+`prompts/triage.md` only and is not enforced in code. The LLM returned
+`known_pattern` anyway, with no matched incident to back it up.
 
 **Grading note (corrected grader, Nov 2026):** The original grader checked
 `hypothesis.pattern` for all bugs; L0 hits (no investigator, no hypothesis)
@@ -223,6 +236,10 @@ are graded on the retrieved incident's pattern.  First corrected run:
   (`incomplete_symbol_rename`, AttributeError), producing a wrong-pattern
   L0 hit.  L0 also returns files from the matched past incident, not the
   current error's file — pattern-level recall only, not file localization.
+- **L0 routing is LLM-decided, not code-enforced:** the 0.85 similarity /
+  same-error-type threshold is LLM guidance in `prompts/triage.md` only.
+  In run `20261118T071135Z`, bugs 1 and 2 were routed to L0 against an
+  empty database (0% confidence, 0 tools, no answer produced).
 
 ### Memory retrieval — Stack Overflow duplicate pairs
 
