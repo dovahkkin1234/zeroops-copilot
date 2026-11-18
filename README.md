@@ -115,6 +115,22 @@ Bug 4 is a deliberate variant of bug 1's pattern
 (`incomplete_symbol_rename`), used specifically to exercise the Triage
 L0 fast path once memory has been warmed by an earlier run.
 
+### Job-search demo (self-authored, no performance claims)
+
+`src/zeroops/tools/job_search.py` shows the same `all-MiniLM-L6-v2`
+embedding stack applied to a different retrieval domain: ranking job
+postings by cosine similarity to a natural-language query.
+
+```bash
+# PowerShell
+uv run python -m zeroops.tools.job_search "LLM engineering Python RAG structured outputs"
+uv run python -m zeroops.tools.job_search "iOS Swift mobile development" --top 3
+```
+
+The 12 sample postings are self-authored and labeled `(fictional)`.
+No accuracy claims are made — this is an illustrative demo, not an
+evaluated retrieval system.
+
 ## Evaluation
 
 `eval/benchmark.py` runs all 7 bugs in two phases — cold-start
