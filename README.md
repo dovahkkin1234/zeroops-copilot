@@ -185,6 +185,13 @@ from the per-bug comparison. n=1 — a single run is indicative, not conclusive.
 the agent reaches the right region but pattern-tags it inconsistently).
 Both flat-memory and graph-memory conditions share this miss pattern.
 
+**Grading note (corrected grader, Nov 2026):** The original grader checked
+`hypothesis.pattern` for all bugs; L0 hits (no investigator, no hypothesis)
+always scored `pattern_correct=False` even when the retrieved pattern was
+correct.  Rules G1/G2 (`eval/grading_rules.md`) unify scoring: L0 hits
+are graded on the retrieved incident's pattern.  First corrected run:
+`20261118T071135Z` — bug4 (L0) now ✅.  Full side-by-side in `docs/CLAIMS.md`.
+
 **Limitations of this evaluation:**
 
 - n=7 bugs, synthetic, authored by the same person who built the agent —
@@ -193,6 +200,13 @@ Both flat-memory and graph-memory conditions share this miss pattern.
 - qwen2.5:7b is a 7B local model; results with a frontier model would differ
 - The benchmark does not cover distributed traces, async/timing bugs,
   or any pattern outside the seeded cases
+- **L0 false-positive risk:** errors sharing the same exception class and
+  template (e.g., any `AttributeError: module 'X' has no attribute 'Y'`)
+  can match across unrelated root-cause patterns.  In 3/3 prior with_memory
+  runs, bug 7 (`stale_import`, AttributeError) matched bug 1's incident
+  (`incomplete_symbol_rename`, AttributeError), producing a wrong-pattern
+  L0 hit.  L0 also returns files from the matched past incident, not the
+  current error's file — pattern-level recall only, not file localization.
 
 ### Memory retrieval — Stack Overflow duplicate pairs
 

@@ -99,6 +99,78 @@ Metadata: `llm_provider=ollama`, `llm_model=qwen2.5:7b`, `condition=no_memory`
 
 ---
 
+## Grading integrity — G1/G2 corrected grader (Nov 2026)
+
+**Rule committed:** `eval/grading_rules.md` (commit 67e376a), before any re-run.
+
+### The grading bug
+Before the fix, `_score_result` checked `hypothesis.pattern` and `evidence`
+for all bugs.  On the L0 path (resolution_status = "known_pattern"), neither
+field is populated — the investigator never ran.  Result: bug4 and bug7 were
+always scored `pattern_correct=False` / `file_found=False` regardless of what
+was actually retrieved.
+
+### Side-by-side: old grader vs new grader
+
+Old grader (with_memory runs 20261116T114317Z through 20261116T160526Z):
+
+| Bug | Pattern (old) | File (old) | Notes |
+|-----|:---:|:---:|---|
+| bug1 | ✅ | ✅ | investigated normally |
+| bug2 | ✅ | ✅ | investigated normally |
+| bug3 | ✅ | ✅ | investigated normally |
+| bug4 | ❌ | ❌ | grader bug — L0 hit, hypothesis always empty |
+| bug5 | ❌ | ❌ | genuine wrong pattern (LLM) |
+| bug6 | ✅ | ✅ | investigated normally |
+| bug7 | ❌ | ❌ | grader bug + false positive (see below) |
+| **Total** | **4/7** | **4/7** | |
+
+New grader, first corrected run (20261118T071135Z):
+
+| Bug | Pattern (new) | File (new) | Notes |
+|-----|:---:|:---:|---|
+| bug1 | ❌ | ❌ | LLM returned known_pattern with match_confidence=0.0 (quality issue) |
+| bug2 | ❌ | ❌ | same quality issue |
+| bug3 | ✅ | ✅ | investigated normally |
+| bug4 | ✅ | ❌ | L0 retrieved `incomplete_symbol_rename` ✓; file from matched incident |
+| bug5 | ❌ | ❌ | genuine wrong pattern (LLM) |
+| bug6 | ✅ | ✅ | investigated normally |
+| bug7 | ✅ | ✅ | investigated normally (no L0 hit this run) |
+| **Total** | **4/7** | **3/7** | |
+
+Headline pattern accuracy is the same (4/7), composition differs.
+
+### Bug4 L0 — grader fix confirmed
+The corrected grader reads `triage['matched_pattern']` from the retrieved
+incident.  Run 20261118T071135Z: bug4 retrieved `incomplete_symbol_rename`
+(from bug6's saved incident), graded pattern=✅.
+
+**New limitation surfaced:** L0 returns the retrieved incident's file list,
+not the current error's file.  Bug4 expected `handlers.py`; matched incident
+had `data_processor.py` → file=❌.  This is an inherent property of L0
+(pattern recall, not file localization).
+
+### Bug7 — L0 false positive (old runs)
+In all 3 old with_memory runs, bug7 hit L0 (0 tools, match_confidence≈0.51).
+Bug7 is `AttributeError: module 'collections' has no attribute 'Mapping'`
+(expected pattern: `stale_import`).  The L0 path requires `same error_type`;
+bug5 (ImportError) is excluded.  The most likely match was bug1
+(`AttributeError: module 'auth' has no attribute 'validate_token'`,
+pattern: `incomplete_symbol_rename`) — structurally identical template.
+
+**Result:** L0 retrieved `incomplete_symbol_rename` for bug7; correct answer
+is `stale_import`.  This is a **wrong-pattern false positive**.  Under the
+corrected grader, bug7 in old runs would still score pattern=❌ — the fix
+exposes the false positive rather than hiding it behind a grader artifact.
+
+In the new run (20261118T071135Z), bug7 was investigated normally (bug1
+not in memory — it got 0% confidence and was rejected by the save contract),
+correctly identified `stale_import`.
+
+**This false-positive risk is documented in README Limitations.**
+
+---
+
 ## Claim 5: Stack Overflow retrieval Recall@3 0.911, MRR 0.80 (n=124)
 
 **Source:** `eval/results/20261115T210854Z/so_eval.json`
