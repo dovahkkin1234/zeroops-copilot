@@ -1,0 +1,37 @@
+# UNTESTED — see Dockerfile note.
+# Usage:
+#   docker compose run --rm tests          # run offline pytest suite
+#   docker compose run --rm cli --error-file eval/fixtures/bug1_error.txt
+
+services:
+  tests:
+    image: zeroops-copilot
+    build: .
+    # extra_hosts is required on Linux Docker to resolve host.docker.internal.
+    # On Docker Desktop for Windows / Mac it is resolved automatically.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
+      LLM_PROVIDER: ollama
+      LLM_MODEL: qwen2.5:7b
+      UTILITY_MODEL: qwen2.5:7b
+    volumes:
+      # Persist benchmark results out of the container
+      - ./eval/results:/app/eval/results
+    command: ["python", "-m", "pytest", "-q"]
+
+  cli:
+    image: zeroops-copilot
+    build: .
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
+      LLM_PROVIDER: ollama
+      LLM_MODEL: qwen2.5:7b
+      UTILITY_MODEL: qwen2.5:7b
+    volumes:
+      - ./eval/results:/app/eval/results
+    entrypoint: ["python", "-m", "zeroops.runner"]
+    command: ["--help"]
