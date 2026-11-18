@@ -41,10 +41,11 @@ bug7 (`AttributeError: module 'collections' has no attribute 'Mapping'`)
 hit the L0 fast path in every with_memory run (0 tools, confidence ≈ 51%).
 The expected pattern is `stale_import`.
 
-bug5 (`ImportError`) is not a candidate: the L0 rule requires `same error_type`,
-and bug5 is `ImportError` while bug7 is `AttributeError`.  The most likely match
-is bug1 (`AttributeError: module 'auth' has no attribute 'validate_token'`),
-whose template is structurally identical to bug7's error text; bug1's
+bug5 (`ImportError`) is not a likely candidate: the triage prompt asks the LLM
+to prefer same-error-type matches, but this is LLM guidance and not enforced in
+code, so bug5 is not guaranteed to be excluded.  The most likely match is bug1
+(`AttributeError: module 'auth' has no attribute 'validate_token'`), whose
+template is structurally identical to bug7's error text; bug1's
 `root_cause_pattern` is `incomplete_symbol_rename`.
 
 If confirmed by re-run: bug7's L0 retrieval is a **wrong-pattern false positive**

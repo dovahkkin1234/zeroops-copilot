@@ -1,4 +1,4 @@
-# Verified 2026-11-18, Windows 11, Docker Desktop 4.99.0:
+# Verified 2026-11-18, Windows 11, Docker Desktop:
 #   docker build -t zeroops-copilot .   → succeeded
 #   docker run --rm zeroops-copilot     → 80 passed in 7.69s
 # docker-compose.yml and container-to-host-Ollama CLI path: UNTESTED

@@ -158,7 +158,8 @@ grader would need `triage['matched_pattern']`, which the old code did not
 store.  The likely source is bug1 (`AttributeError: module 'auth' has no
 attribute 'validate_token'`, pattern `incomplete_symbol_rename`) because both
 share the `AttributeError: module 'X' has no attribute 'Y'` template and the
-L0 rule requires the same error type (bug5's ImportError is excluded).
+triage prompt asks for the same error type; however this is LLM guidance and
+not enforced in code, so bug5 is not guaranteed to be excluded.
 **This is an inference, not a verified fact.**
 
 Under the corrected grader, bug7 in old runs would score pattern=❌ whether
