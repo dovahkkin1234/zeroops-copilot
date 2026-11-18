@@ -14,7 +14,7 @@ WORKDIR /app
 # Default torch from PyPI includes CUDA (~2 GB). The CPU wheel is ~200 MB.
 # Install before sentence-transformers so pip does not pull the CUDA version.
 RUN pip install --no-cache-dir \
-    torch==2.4.1+cpu \
+    torch==2.6.0+cpu \
     --index-url https://download.pytorch.org/whl/cpu
 
 # ── Project runtime deps ──────────────────────────────────────────────────────
@@ -62,8 +62,10 @@ RUN useradd -m -u 1001 appuser && chown -R appuser:appuser /app
 USER appuser
 
 # ── Runtime env ───────────────────────────────────────────────────────────────
-# Override OLLAMA_BASE_URL at `docker run` time if Ollama is on a different host.
-ENV OLLAMA_BASE_URL=http://host.docker.internal:11434/v1
+# OLLAMA_BASE_URL is intentionally NOT set here so the config default
+# (localhost:11434/v1) passes the offline test suite.
+# Pass it at runtime: docker run -e OLLAMA_BASE_URL=http://host.docker.internal:11434/v1
+# or via docker-compose.yml (already configured there).
 ENV LLM_PROVIDER=ollama
 ENV LLM_MODEL=qwen2.5:7b
 ENV UTILITY_MODEL=qwen2.5:7b
