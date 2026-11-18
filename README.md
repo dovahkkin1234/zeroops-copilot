@@ -232,10 +232,13 @@ are graded on the retrieved incident's pattern.  First corrected run:
 - **L0 false-positive risk:** errors sharing the same exception class and
   template (e.g., any `AttributeError: module 'X' has no attribute 'Y'`)
   can match across unrelated root-cause patterns.  In 3/3 prior with_memory
-  runs, bug 7 (`stale_import`, AttributeError) matched bug 1's incident
-  (`incomplete_symbol_rename`, AttributeError), producing a wrong-pattern
-  L0 hit.  L0 also returns files from the matched past incident, not the
-  current error's file — pattern-level recall only, not file localization.
+  runs, bug 7 (`stale_import`, AttributeError) took the L0 path (0 tools,
+  confidence ≈ 0.508) and was scored wrong; the retrieved incident was not
+  recorded in the saved results so the match cannot be verified — the likely
+  source is bug 1 (similar AttributeError template), but this is unconfirmed.
+  In the corrected-grader run bug 7 was investigated normally and was not
+  re-tested on the L0 path.  L0 also returns files from the matched past
+  incident, not the current error's file — pattern-level recall only.
 - **L0 routing is LLM-decided, not code-enforced:** the 0.85 similarity /
   same-error-type threshold is LLM guidance in `prompts/triage.md` only.
   In run `20261118T071135Z`, bugs 1 and 2 were routed to L0 against an

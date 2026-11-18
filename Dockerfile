@@ -1,5 +1,7 @@
-# UNTESTED — Docker Desktop was not installed on the build machine.
-# Verify with: docker build -t zeroops-copilot . && docker run --rm zeroops-copilot
+# Verified 2026-11-18, Windows 11, Docker Desktop 4.99.0:
+#   docker build -t zeroops-copilot .   → succeeded
+#   docker run --rm zeroops-copilot     → 80 passed in 7.69s
+# docker-compose.yml and container-to-host-Ollama CLI path: UNTESTED
 
 FROM python:3.11-slim
 

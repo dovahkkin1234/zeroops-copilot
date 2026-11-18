@@ -150,24 +150,25 @@ not the current error's file.  Bug4 expected `handlers.py`; matched incident
 had `data_processor.py` → file=❌.  This is an inherent property of L0
 (pattern recall, not file localization).
 
-### Bug7 — L0 false positive (old runs)
-In all 3 old with_memory runs, bug7 hit L0 (0 tools, match_confidence≈0.51).
-Bug7 is `AttributeError: module 'collections' has no attribute 'Mapping'`
-(expected pattern: `stale_import`).  The L0 path requires `same error_type`;
-bug5 (ImportError) is excluded.  The most likely match was bug1
-(`AttributeError: module 'auth' has no attribute 'validate_token'`,
-pattern: `incomplete_symbol_rename`) — structurally identical template.
+### Bug7 — L0 path in old runs (retrieved incident unrecorded)
+In all 3 old with_memory runs, bug7 hit L0 (0 tools, match_confidence≈0.508)
+and was scored pattern=❌.  The saved results (`checkpoint.json`,
+`results.json`) do not record which incident was retrieved — the corrected
+grader would need `triage['matched_pattern']`, which the old code did not
+store.  The likely source is bug1 (`AttributeError: module 'auth' has no
+attribute 'validate_token'`, pattern `incomplete_symbol_rename`) because both
+share the `AttributeError: module 'X' has no attribute 'Y'` template and the
+L0 rule requires the same error type (bug5's ImportError is excluded).
+**This is an inference, not a verified fact.**
 
-**Result:** L0 retrieved `incomplete_symbol_rename` for bug7; correct answer
-is `stale_import`.  This is a **wrong-pattern false positive**.  Under the
-corrected grader, bug7 in old runs would still score pattern=❌ — the fix
-exposes the false positive rather than hiding it behind a grader artifact.
+Under the corrected grader, bug7 in old runs would score pattern=❌ whether
+the match was bug1 or any other incident whose pattern ≠ `stale_import`.
 
-In the new run (20261118T071135Z), bug7 was investigated normally (bug1
-not in memory — it got 0% confidence and was rejected by the save contract),
-correctly identified `stale_import`.
+In the corrected-grader run (20261118T071135Z), bug7 was investigated
+normally (not an L0 hit) and correctly identified `stale_import`.  The L0
+path for bug7 was therefore not re-tested under the new grader.
 
-**This false-positive risk is documented in README Limitations.**
+**The L0 false-positive risk is documented in README Limitations.**
 
 ---
 
@@ -262,7 +263,7 @@ Pydantic validation, not PydanticAI's native structured-output protocol.
 | Claim | Status |
 |---|---|
 | "Anthropic provider validated" | No API key; Anthropic path never run end-to-end — do not claim |
-| "Docker / containerized" | Dockerfile and docker-compose.yml committed; `docker run --rm` verified locally (80 passed). Files exist but not in CI and not independently reproduced — claim with the caveat "locally verified" |
+| "Docker / containerized" | Dockerfile builds and the offline test suite passes in the container (verified 2026-11-18, Windows 11, Docker Desktop: `docker build` succeeded, `docker run --rm` → 80 passed in 7.69s); docker-compose and container-to-Ollama CLI untested |
 | BugsInPy evaluation | `eval/bugsinpy_eval.py` exists but no results committed — do not claim |
 | "Live demo URL" | Site built and deployed to Netlify; public URL not personally tested by owner in incognito — verify before submitting |
 | Graph memory improves accuracy | n=1 run; not conclusive (stated in README) — do not claim |

@@ -621,8 +621,10 @@ footer{background:var(--surface);border-top:1px solid var(--border);padding:1.25
     Consistent miss: bug 5 (stale import in a test file — pattern-tagged inconsistently).
     <strong>L0 false-positive risk:</strong> in 3/3 prior with-memory runs, bug 7
     (stdlib removal, <code>AttributeError</code>, expected <code>stale_import</code>)
-    matched bug 1's incident (<code>incomplete_symbol_rename</code>, same error class)
-    due to identical template text — returning the wrong pattern at L0.
+    took the L0 path (0 tools, confidence ≈ 0.508) and was scored wrong; the
+    retrieved incident was not recorded, so the match cannot be verified — the
+    likely source is bug 1 (similar <code>AttributeError</code> template), but
+    this is unconfirmed.
     <strong>Empty-answer risk:</strong> in one run, bugs 1 and 2 were routed to L0
     against an empty database (0% match confidence, 0 tools, no answer produced) because
     L0 routing is the LLM's classification decision — the 0.85 threshold in the prompt
